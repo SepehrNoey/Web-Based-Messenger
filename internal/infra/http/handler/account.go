@@ -25,6 +25,15 @@ func NewAccountHandler(repo accountrepo.Repository, jwtConfig auth.JWTConfig) *A
 	}
 }
 
+func (ah *AccountHandler) addClaims(ac *model.Account) map[string]interface{} {
+	claims := make(map[string]interface{})
+	claims["username"] = ac.Username
+	claims["id"] = ac.ID
+	claims["phone"] = ac.Phone
+
+	return claims
+}
+
 func (ah *AccountHandler) Register(c echo.Context) error {
 	var req request.AccountCreate
 
@@ -101,11 +110,42 @@ func (ah *AccountHandler) LoginByUsername(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusBadRequest, model.ErrInvalidCredentials.Error())
 	}
 
-	claims := make(map[string]interface{})
-	claims["username"] = account.Username
-	claims["id"] = account.ID
-	claims["phone"] = account.Phone
-	token, err := ah.jwtConfig.CreateToken(claims)
+	token, err := ah.jwtConfig.CreateToken(ah.addClaims(&account))
+	if err != nil {
+		return echo.ErrInternalServerError
+	}
+
+	c.Response().Header().Set(echo.HeaderAuthorization, "Bearer "+token)
+	return c.NoContent(http.StatusOK)
+
+}
+
+func (ah *AccountHandler) LoginByPhone(c echo.Context) error {
+	var req request.AccountLoginByPhone
+
+	if err := c.Bind(&req); err != nil {
+		return echo.ErrBadRequest
+	}
+
+	if err := req.Validate(); err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
+	}
+
+	accounts := ah.repo.Get(c.Request().Context(), accountrepo.GetCommand{
+		Phone: &req.Phone,
+	})
+	if len(accounts) > 1 {
+		return echo.ErrInternalServerError
+	} else if len(accounts) == 0 {
+		return echo.NewHTTPError(http.StatusNotFound, model.ErrUserNotFound.Error())
+	}
+
+	account := accounts[0]
+	if account.Password != req.Password {
+		return echo.NewHTTPError(http.StatusBadRequest, model.ErrInvalidCredentials.Error())
+	}
+
+	token, err := ah.jwtConfig.CreateToken(ah.addClaims(&account))
 	if err != nil {
 		return echo.ErrInternalServerError
 	}

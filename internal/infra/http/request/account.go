@@ -28,7 +28,7 @@ func (ac AccountCreate) Validate() error {
 }
 
 type AccountLoginByUsername struct {
-	Username string `json:"firstname,omitempty" validate:"required"`
+	Username string `json:"username,omitempty" validate:"required"`
 	Password string `json:"password,omitempty" validate:"required"`
 }
 
@@ -37,6 +37,21 @@ func (alu AccountLoginByUsername) Validate() error {
 
 	if err := validate.Struct(alu); err != nil {
 		return fmt.Errorf("username and password are required: %w", err)
+	}
+
+	return nil
+}
+
+type AccountLoginByPhone struct {
+	Phone    string `json:"phone,omitempty" validate:"e164,required"`
+	Password string `json:"password,omitempty" validate:"required"`
+}
+
+func (alp AccountLoginByPhone) Validate() error {
+	validate := validator.New(validator.WithRequiredStructEnabled())
+
+	if err := validate.Struct(alp); err != nil {
+		return fmt.Errorf("phone and password are required; %w", err)
 	}
 
 	return nil
