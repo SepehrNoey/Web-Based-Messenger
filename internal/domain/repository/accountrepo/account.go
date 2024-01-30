@@ -13,11 +13,11 @@ type GetCommand struct {
 	FirstName *string
 	LastName  *string
 	Phone     *string
+	ImagePath *string
 }
 
 type Repository interface {
-	Register(ctx context.Context, model model.Account) error
-	Login(ctx context.Context, cmd GetCommand) (string, error) // token and error
+	Create(ctx context.Context, model model.Account) error
 	Get(ctx context.Context, cmd GetCommand) []model.Account
 	Update(ctx context.Context, cmd GetCommand) error
 	Delete(ctx context.Context, cmd GetCommand) error
