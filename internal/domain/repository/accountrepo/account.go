@@ -19,6 +19,6 @@ type GetCommand struct {
 type Repository interface {
 	Create(ctx context.Context, model model.Account) error
 	Get(ctx context.Context, cmd GetCommand) []model.Account
-	Update(ctx context.Context, cmd GetCommand) error
+	Update(ctx context.Context, cmd GetCommand, model model.Account) error
 	Delete(ctx context.Context, cmd GetCommand) error
 }

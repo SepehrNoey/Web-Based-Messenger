@@ -51,7 +51,51 @@ func (alp AccountLoginByPhone) Validate() error {
 	validate := validator.New(validator.WithRequiredStructEnabled())
 
 	if err := validate.Struct(alp); err != nil {
-		return fmt.Errorf("phone and password are required; %w", err)
+		return fmt.Errorf("phone and password are required: %w", err)
+	}
+
+	return nil
+}
+
+type AccountLoginWholeData struct {
+	Username string `json:"username,omitempty"`
+	Password string `json:"password,omitempty"`
+	Phone    string `json:"phone,omitempty"`
+}
+
+type AccountRequestById struct {
+	ID    uint64 `param:"id,omitempty" validate:"number,required"`
+	Token string `header:"Authentication,omitempty" validate:"required"`
+}
+
+func (agu AccountRequestById) Validate() error {
+	validate := validator.New(validator.WithRequiredStructEnabled())
+
+	if err := validate.Struct(agu); err != nil {
+		return fmt.Errorf("field validations failed: %w", err)
+	}
+
+	return nil
+}
+
+type AccountUpdate struct {
+	ID    *uint64 `param:"id,omitempty" validate:"number,required"`
+	Token *string `header:"Authentication,omitempty" validate:"required"`
+
+	Firstname *string `json:"firstname,omitempty"`
+	Phone     *string `json:"phone,omitempty" validate:"e164"`
+	Username  *string `json:"username,omitempty"`
+	Password  *string `json:"password,omitempty" validate:"min=8"`
+	Lastname  *string `json:"lastname,omitempty"`
+	ImagePath *string `json:"img_path,omitempty" validate:"url"`
+	Bio       *string `json:"bio,omitempty" validate:"max=100"`
+}
+
+func (au AccountUpdate) Validate() error {
+	validate := validator.New(validator.WithRequiredStructEnabled())
+
+	if err := validate.Struct(au); err != nil {
+		return fmt.Errorf("account update validation failed: %w", err)
 	}
 
 	return nil

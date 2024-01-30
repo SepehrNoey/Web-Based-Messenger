@@ -2,11 +2,13 @@ package handler
 
 import (
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/SepehrNoey/Web-Based-Messenger/internal/domain/model"
 	"github.com/SepehrNoey/Web-Based-Messenger/internal/domain/repository/accountrepo"
 	"github.com/SepehrNoey/Web-Based-Messenger/internal/infra/http/auth"
+	"github.com/SepehrNoey/Web-Based-Messenger/internal/infra/http/clientdto"
 	"github.com/SepehrNoey/Web-Based-Messenger/internal/infra/http/request"
 	"github.com/labstack/echo/v4"
 )
@@ -153,4 +155,206 @@ func (ah *AccountHandler) LoginByPhone(c echo.Context) error {
 	c.Response().Header().Set(echo.HeaderAuthorization, "Bearer "+token)
 	return c.NoContent(http.StatusOK)
 
+}
+
+func (ah *AccountHandler) chooseLogin(c echo.Context) error {
+	var req request.AccountLoginWholeData
+
+	if err := c.Bind(&req); err != nil {
+		return echo.ErrBadRequest
+	}
+
+	if req.Phone == "" {
+		return ah.LoginByUsername(c)
+	} else if req.Username == "" {
+		return ah.LoginByPhone(c)
+	} else {
+		return echo.ErrBadRequest
+	}
+}
+
+func (ah *AccountHandler) GetUserInfo(c echo.Context) error {
+	var req request.AccountRequestById
+	var claims map[string]interface{}
+
+	// bind fields path params
+	if err := c.Bind(&req); err != nil {
+		return echo.ErrBadRequest
+	}
+	// bind fields in header (jwt token)
+	binder := &echo.DefaultBinder{}
+	if err := binder.BindHeaders(c, &req); err != nil {
+		return echo.ErrBadRequest
+	} else {
+		parts := strings.Split(req.Token, " ")
+		if len(parts) != 2 {
+			return echo.ErrBadRequest
+		} else if parts[0] != "Bearer" {
+			return echo.ErrBadRequest
+		} else {
+			req.Token = parts[1]
+			if claims, err = ah.jwtConfig.ValidateToken(req.Token); err != nil {
+				return echo.NewHTTPError(http.StatusUnauthorized, err.Error())
+			}
+		}
+	}
+
+	if err := req.Validate(); err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
+	}
+
+	accounts := ah.repo.Get(c.Request().Context(), accountrepo.GetCommand{
+		ID: &req.ID,
+	})
+	if len(accounts) > 1 {
+		return echo.ErrInternalServerError
+	} else if len(accounts) == 0 {
+		return echo.NewHTTPError(http.StatusNotFound, model.ErrUserNotFound.Error())
+	}
+
+	account := accounts[0]
+	if claims["id"] != account.ID { // notice that still anybody that have the jwt token, can modify/access the data of the real user
+		return echo.NewHTTPError(http.StatusForbidden, model.ErrAccessForbidden.Error())
+	}
+
+	accountDTO := clientdto.Account{ // we don't send some fields like password, etc...
+		ID:        account.ID,
+		FirstName: account.FirstName,
+		LastName:  account.LastName,
+		Phone:     account.Phone,
+		Username:  account.Username,
+		ImagePath: account.ImagePath,
+		Bio:       account.Bio,
+		Status:    account.Status,
+		LastVisit: account.LastVisit,
+	}
+	return c.JSON(http.StatusOK, accountDTO)
+
+}
+
+func (ah *AccountHandler) UpdateUserInfo(c echo.Context) error {
+	var req request.AccountUpdate
+	var claims map[string]interface{}
+
+	// bind fields path params and body
+	if err := c.Bind(&req); err != nil {
+		return echo.ErrBadRequest
+	}
+	// bind fields in header (jwt token)
+	binder := &echo.DefaultBinder{}
+	if err := binder.BindHeaders(c, &req); err != nil {
+		return echo.ErrBadRequest
+	} else {
+		parts := strings.Split(*req.Token, " ")
+		if len(parts) != 2 {
+			return echo.ErrBadRequest
+		} else if parts[0] != "Bearer" {
+			return echo.ErrBadRequest
+		} else {
+			*req.Token = parts[1]
+			if claims, err = ah.jwtConfig.ValidateToken(*req.Token); err != nil {
+				return echo.NewHTTPError(http.StatusUnauthorized, err.Error())
+			}
+		}
+	}
+
+	if err := req.Validate(); err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
+	}
+
+	accounts := ah.repo.Get(c.Request().Context(), accountrepo.GetCommand{
+		ID: req.ID,
+	})
+	if len(accounts) > 1 {
+		return echo.ErrInternalServerError
+	} else if len(accounts) == 0 {
+		return echo.NewHTTPError(http.StatusNotFound, model.ErrUserNotFound.Error())
+	}
+
+	account := accounts[0]
+	if claims["id"] != account.ID {
+		return echo.NewHTTPError(http.StatusForbidden, model.ErrAccessForbidden.Error())
+	}
+
+	updatedModel := model.Account{ID: *req.ID, LastVisit: time.Now()}
+	if req.Firstname != nil {
+		updatedModel.FirstName = *req.Firstname
+	} else {
+		updatedModel.FirstName = account.FirstName
+	}
+
+	if req.Lastname != nil {
+		updatedModel.LastName = *req.Lastname
+	} else {
+		updatedModel.LastName = account.LastName
+	}
+
+	if req.Phone != nil {
+		existingAccs := ah.repo.Get(c.Request().Context(), accountrepo.GetCommand{Phone: req.Phone})
+		if len(existingAccs) > 0 {
+			return echo.NewHTTPError(http.StatusBadRequest, model.ErrPhoneDuplicate.Error())
+		}
+
+		updatedModel.Phone = *req.Phone
+	} else {
+		updatedModel.Phone = account.Phone
+	}
+
+	if req.Username != nil {
+		existingAccs := ah.repo.Get(c.Request().Context(), accountrepo.GetCommand{Username: req.Username})
+		if len(existingAccs) > 0 {
+			return echo.NewHTTPError(http.StatusBadRequest, model.ErrUsernameDuplicate.Error())
+		}
+
+		updatedModel.Username = *req.Username
+	} else {
+		updatedModel.Username = account.Username
+	}
+
+	if req.Password != nil {
+		updatedModel.Password = *req.Password
+	} else {
+		updatedModel.Password = account.Password
+	}
+
+	if req.ImagePath != nil {
+		existingAccs := ah.repo.Get(c.Request().Context(), accountrepo.GetCommand{ImagePath: req.ImagePath})
+		if len(existingAccs) > 0 {
+			return echo.NewHTTPError(http.StatusBadRequest, model.ErrImagePathDuplicate.Error())
+		}
+
+		updatedModel.ImagePath = *req.ImagePath
+	} else {
+		updatedModel.ImagePath = account.ImagePath
+	}
+
+	if req.Bio != nil {
+		updatedModel.Bio = *req.Bio
+	} else {
+		updatedModel.Bio = account.Bio
+	}
+
+	if err := ah.repo.Update(c.Request().Context(), accountrepo.GetCommand{ID: &account.ID}, updatedModel); err != nil {
+		return echo.ErrInternalServerError
+	}
+
+	accountDTO := clientdto.Account{
+		ID:        updatedModel.ID,
+		FirstName: updatedModel.FirstName,
+		LastName:  updatedModel.LastName,
+		Phone:     updatedModel.Phone,
+		Username:  updatedModel.Username,
+		ImagePath: updatedModel.ImagePath,
+		Bio:       updatedModel.Bio,
+		Status:    updatedModel.Status,
+		LastVisit: updatedModel.LastVisit,
+	}
+	return c.JSON(http.StatusOK, accountDTO)
+}
+
+func (ah *AccountHandler) RegisterMethods(g *echo.Group) {
+	g.POST("register", ah.Register)
+	g.POST("login", ah.chooseLogin)
+	g.GET("users/:id", ah.GetUserInfo)
+	g.PATCH("users/:id", ah.UpdateUserInfo)
 }
