@@ -2,7 +2,6 @@ package handler
 
 import (
 	"net/http"
-	"strings"
 	"time"
 
 	"github.com/SepehrNoey/Web-Based-Messenger/internal/domain/model"
@@ -39,30 +38,30 @@ func (ah *AccountHandler) addClaims(ac *model.Account) map[string]interface{} {
 func (ah *AccountHandler) Register(c echo.Context) error {
 	var req request.AccountCreate
 
-	if err := c.Bind(&req); err != nil {
+	if err := request.Bind(&req, c); err != nil {
 		return echo.ErrBadRequest
 	}
 
-	if err := req.Validate(); err != nil {
+	if err := request.Validate(&req); err != nil {
 		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
 	}
 
 	accountsSameUsername := ah.repo.Get(c.Request().Context(), accountrepo.GetCommand{
-		Username: &req.Username,
+		Username: req.Username,
 	})
 	if len(accountsSameUsername) > 0 {
 		return echo.NewHTTPError(http.StatusBadRequest, model.ErrUsernameDuplicate.Error())
 	}
 
 	accountsSamePhone := ah.repo.Get(c.Request().Context(), accountrepo.GetCommand{
-		Phone: &req.Phone,
+		Phone: req.Phone,
 	})
 	if len(accountsSamePhone) > 0 {
 		return echo.NewHTTPError(http.StatusBadRequest, model.ErrPhoneDuplicate.Error())
 	}
 
 	accountsSameImgPath := ah.repo.Get(c.Request().Context(), accountrepo.GetCommand{
-		ImagePath: &req.ImagePath,
+		ImagePath: req.ImagePath,
 	})
 	if len(accountsSameImgPath) > 0 {
 		return echo.NewHTTPError(http.StatusBadRequest, model.ErrImagePathDuplicate.Error())
@@ -70,13 +69,13 @@ func (ah *AccountHandler) Register(c echo.Context) error {
 
 	if err := ah.repo.Create(c.Request().Context(), model.Account{
 		ID:        uint64(lastRegisteredID + 1),
-		FirstName: req.Firstname,
-		LastName:  req.Lastname,
-		Phone:     req.Phone,
-		Username:  req.Username,
-		Password:  req.Password,
-		ImagePath: req.ImagePath,
-		Bio:       req.Bio,
+		FirstName: *req.Firstname,
+		LastName:  *req.Lastname,
+		Phone:     *req.Phone,
+		Username:  *req.Username,
+		Password:  *req.Password,
+		ImagePath: *req.ImagePath,
+		Bio:       *req.Bio,
 		// won't give status field
 		LastVisit: time.Now(),
 	}); err != nil {
@@ -90,16 +89,16 @@ func (ah *AccountHandler) Register(c echo.Context) error {
 func (ah *AccountHandler) LoginByUsername(c echo.Context) error {
 	var req request.AccountLoginByUsername
 
-	if err := c.Bind(&req); err != nil {
-		return echo.ErrBadRequest
+	if err := request.Bind(&req, c); err != nil {
+		return err
 	}
 
-	if err := req.Validate(); err != nil {
+	if err := request.Validate(&req); err != nil {
 		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
 	}
 
 	accounts := ah.repo.Get(c.Request().Context(), accountrepo.GetCommand{
-		Username: &req.Username,
+		Username: req.Username,
 	})
 	if len(accounts) > 1 {
 		return echo.ErrInternalServerError
@@ -108,7 +107,7 @@ func (ah *AccountHandler) LoginByUsername(c echo.Context) error {
 	}
 
 	account := accounts[0]
-	if account.Password != req.Password {
+	if account.Password != *req.Password {
 		return echo.NewHTTPError(http.StatusBadRequest, model.ErrInvalidCredentials.Error())
 	}
 
@@ -117,7 +116,7 @@ func (ah *AccountHandler) LoginByUsername(c echo.Context) error {
 		return echo.ErrInternalServerError
 	}
 
-	c.Response().Header().Set(echo.HeaderAuthorization, "Bearer "+token)
+	c.Response().Header().Set(echo.HeaderAuthorization, auth.GetAuthHeaderValue(token))
 	return c.NoContent(http.StatusOK)
 
 }
@@ -125,16 +124,16 @@ func (ah *AccountHandler) LoginByUsername(c echo.Context) error {
 func (ah *AccountHandler) LoginByPhone(c echo.Context) error {
 	var req request.AccountLoginByPhone
 
-	if err := c.Bind(&req); err != nil {
+	if err := request.Bind(&req, c); err != nil {
 		return echo.ErrBadRequest
 	}
 
-	if err := req.Validate(); err != nil {
+	if err := request.Validate(&req); err != nil {
 		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
 	}
 
 	accounts := ah.repo.Get(c.Request().Context(), accountrepo.GetCommand{
-		Phone: &req.Phone,
+		Phone: req.Phone,
 	})
 	if len(accounts) > 1 {
 		return echo.ErrInternalServerError
@@ -143,7 +142,7 @@ func (ah *AccountHandler) LoginByPhone(c echo.Context) error {
 	}
 
 	account := accounts[0]
-	if account.Password != req.Password {
+	if account.Password != *req.Password {
 		return echo.NewHTTPError(http.StatusBadRequest, model.ErrInvalidCredentials.Error())
 	}
 
@@ -152,7 +151,7 @@ func (ah *AccountHandler) LoginByPhone(c echo.Context) error {
 		return echo.ErrInternalServerError
 	}
 
-	c.Response().Header().Set(echo.HeaderAuthorization, "Bearer "+token)
+	c.Response().Header().Set(echo.HeaderAuthorization, auth.GetAuthHeaderValue(token))
 	return c.NoContent(http.StatusOK)
 
 }
@@ -160,13 +159,13 @@ func (ah *AccountHandler) LoginByPhone(c echo.Context) error {
 func (ah *AccountHandler) chooseLogin(c echo.Context) error {
 	var req request.AccountLoginWholeData
 
-	if err := c.Bind(&req); err != nil {
-		return echo.ErrBadRequest
+	if err := request.Bind(&req, c); err != nil {
+		return err
 	}
 
-	if req.Phone == "" {
+	if *req.Phone == "" {
 		return ah.LoginByUsername(c)
-	} else if req.Username == "" {
+	} else if *req.Username == "" {
 		return ah.LoginByPhone(c)
 	} else {
 		return echo.ErrBadRequest
@@ -174,37 +173,23 @@ func (ah *AccountHandler) chooseLogin(c echo.Context) error {
 }
 
 func (ah *AccountHandler) GetUserInfo(c echo.Context) error {
-	var req request.AccountRequestById
-	var claims map[string]interface{}
-
-	// bind fields path params
-	if err := c.Bind(&req); err != nil {
-		return echo.ErrBadRequest
+	var req request.TokenAndID
+	if err := request.BindT(&req, c); err != nil {
+		return err
 	}
-	// bind fields in header (jwt token)
-	binder := &echo.DefaultBinder{}
-	if err := binder.BindHeaders(c, &req); err != nil {
-		return echo.ErrBadRequest
-	} else {
-		parts := strings.Split(req.Token, " ")
-		if len(parts) != 2 {
-			return echo.ErrBadRequest
-		} else if parts[0] != "Bearer" {
-			return echo.ErrBadRequest
-		} else {
-			req.Token = parts[1]
-			if claims, err = ah.jwtConfig.ValidateToken(req.Token); err != nil {
-				return echo.NewHTTPError(http.StatusUnauthorized, err.Error())
-			}
-		}
-	}
-
-	if err := req.Validate(); err != nil {
+	if err := request.Validate(&req); err != nil {
 		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
 	}
 
+	var claims map[string]interface{}
+	var err error
+	claims, err = ah.jwtConfig.ValidateToken(*req.Token)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusUnauthorized, err.Error())
+	}
+
 	accounts := ah.repo.Get(c.Request().Context(), accountrepo.GetCommand{
-		ID: &req.ID,
+		ID: req.ID,
 	})
 	if len(accounts) > 1 {
 		return echo.ErrInternalServerError
@@ -234,32 +219,18 @@ func (ah *AccountHandler) GetUserInfo(c echo.Context) error {
 
 func (ah *AccountHandler) UpdateUserInfo(c echo.Context) error {
 	var req request.AccountUpdate
-	var claims map[string]interface{}
-
-	// bind fields path params and body
-	if err := c.Bind(&req); err != nil {
-		return echo.ErrBadRequest
+	if err := request.BindT(&req, c); err != nil {
+		return err
 	}
-	// bind fields in header (jwt token)
-	binder := &echo.DefaultBinder{}
-	if err := binder.BindHeaders(c, &req); err != nil {
-		return echo.ErrBadRequest
-	} else {
-		parts := strings.Split(*req.Token, " ")
-		if len(parts) != 2 {
-			return echo.ErrBadRequest
-		} else if parts[0] != "Bearer" {
-			return echo.ErrBadRequest
-		} else {
-			*req.Token = parts[1]
-			if claims, err = ah.jwtConfig.ValidateToken(*req.Token); err != nil {
-				return echo.NewHTTPError(http.StatusUnauthorized, err.Error())
-			}
-		}
-	}
-
-	if err := req.Validate(); err != nil {
+	if err := request.Validate(&req); err != nil {
 		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
+	}
+
+	var claims map[string]interface{}
+	var err error
+	claims, err = ah.jwtConfig.ValidateToken(*req.Token)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusUnauthorized, err.Error())
 	}
 
 	accounts := ah.repo.Get(c.Request().Context(), accountrepo.GetCommand{
@@ -353,37 +324,23 @@ func (ah *AccountHandler) UpdateUserInfo(c echo.Context) error {
 }
 
 func (ah *AccountHandler) Delete(c echo.Context) error {
-	var req request.AccountRequestById
-	var claims map[string]interface{}
-
-	// bind fields path params and body
-	if err := c.Bind(&req); err != nil {
-		return echo.ErrBadRequest
+	var req request.TokenAndID
+	if err := request.BindT(&req, c); err != nil {
+		return err
 	}
-	// bind fields in header (jwt token)
-	binder := &echo.DefaultBinder{}
-	if err := binder.BindHeaders(c, &req); err != nil {
-		return echo.ErrBadRequest
-	} else {
-		parts := strings.Split(req.Token, " ")
-		if len(parts) != 2 {
-			return echo.ErrBadRequest
-		} else if parts[0] != "Bearer" {
-			return echo.ErrBadRequest
-		} else {
-			req.Token = parts[1]
-			if claims, err = ah.jwtConfig.ValidateToken(req.Token); err != nil {
-				return echo.NewHTTPError(http.StatusUnauthorized, err.Error())
-			}
-		}
-	}
-
-	if err := req.Validate(); err != nil {
+	if err := request.Validate(&req); err != nil {
 		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
 	}
 
+	var claims map[string]interface{}
+	var err error
+	claims, err = ah.jwtConfig.ValidateToken(*req.Token)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusUnauthorized, err.Error())
+	}
+
 	accounts := ah.repo.Get(c.Request().Context(), accountrepo.GetCommand{
-		ID: &req.ID,
+		ID: req.ID,
 	})
 	if len(accounts) > 1 {
 		return echo.ErrInternalServerError
@@ -407,31 +364,17 @@ func (ah *AccountHandler) Delete(c echo.Context) error {
 
 func (ah *AccountHandler) Search(c echo.Context) error {
 	var req request.AccountSearch
-
-	// bind fields query params
-	if err := c.Bind(&req); err != nil {
-		return echo.ErrBadRequest
-	}
-	// bind fields in header (jwt token)
-	binder := &echo.DefaultBinder{}
-	if err := binder.BindHeaders(c, &req); err != nil {
-		return echo.ErrBadRequest
-	} else {
-		parts := strings.Split(*req.Token, " ")
-		if len(parts) != 2 {
-			return echo.ErrBadRequest
-		} else if parts[0] != "Bearer" {
-			return echo.ErrBadRequest
-		} else {
-			*req.Token = parts[1]
-			if _, err = ah.jwtConfig.ValidateToken(*req.Token); err != nil {
-				return echo.NewHTTPError(http.StatusUnauthorized, err.Error())
-			}
-		}
+	if err := request.BindT(&req, c); err != nil {
+		return err
 	}
 
-	if err := req.Validate(); err != nil {
+	if err := request.Validate(&req); err != nil {
 		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
+	}
+
+	_, err := ah.jwtConfig.ValidateToken(*req.Token)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusUnauthorized, err.Error())
 	}
 
 	accounts := ah.repo.Get(c.Request().Context(), accountrepo.GetCommand{

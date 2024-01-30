@@ -2,9 +2,11 @@ package auth
 
 import (
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
+	"github.com/labstack/echo/v4"
 )
 
 type JWTConfig struct {
@@ -62,4 +64,21 @@ func (c *JWTConfig) ValidateToken(tokenStr string) (jwt.MapClaims, error) {
 	}
 
 	return claims, nil
+}
+
+func ExtractTokenOfHeader(authHeaderStr string) (string, error) {
+	var token string
+	parts := strings.Split(authHeaderStr, " ")
+	if len(parts) != 2 {
+		return "", echo.ErrBadRequest
+	} else if parts[0] != "Bearer" {
+		return "", echo.ErrBadRequest
+	} else {
+		token = parts[1]
+	}
+	return token, nil
+}
+
+func GetAuthHeaderValue(token string) string {
+	return "Bearer " + token
 }
