@@ -453,4 +453,5 @@ func (ah *AccountHandler) RegisterMethods(g *echo.Group) {
 	g.GET("users/:id", ah.GetUserInfo)
 	g.PATCH("users/:id", ah.UpdateUserInfo)
 	g.DELETE("users/:id", ah.Delete)
+	g.GET("users", ah.Search)
 }
