@@ -65,7 +65,7 @@ type AccountLoginWholeData struct {
 
 type AccountRequestById struct {
 	ID    uint64 `param:"id,omitempty" validate:"number,required"`
-	Token string `header:"Authentication,omitempty" validate:"required"`
+	Token string `header:"Authorization,omitempty" validate:"required"`
 }
 
 func (agu AccountRequestById) Validate() error {
@@ -80,7 +80,7 @@ func (agu AccountRequestById) Validate() error {
 
 type AccountUpdate struct {
 	ID    *uint64 `param:"id,omitempty" validate:"number,required"`
-	Token *string `header:"Authentication,omitempty" validate:"required"`
+	Token *string `header:"Authorization,omitempty" validate:"required"`
 
 	Firstname *string `json:"firstname,omitempty"`
 	Phone     *string `json:"phone,omitempty" validate:"e164"`
@@ -96,6 +96,26 @@ func (au AccountUpdate) Validate() error {
 
 	if err := validate.Struct(au); err != nil {
 		return fmt.Errorf("account update validation failed: %w", err)
+	}
+
+	return nil
+}
+
+type AccountSearch struct {
+	Token *string `header:"Authorization,omitempty" validate:"required"`
+
+	ID        *uint64 `query:"id,omitempty" validate:"number"`
+	Firstname *string `query:"firstname,omitempty"`
+	Lastname  *string `query:"lastname,omitempty"`
+	Phone     *string `query:"phone,omitempty" validate:"e164"`
+	Username  *string `query:"username,omitempty"`
+}
+
+func (as AccountSearch) Validate() error {
+	validate := validator.New(validator.WithRequiredStructEnabled())
+
+	if err := validate.Struct(as); err != nil {
+		return fmt.Errorf("account search validation failed: %w", err)
 	}
 
 	return nil

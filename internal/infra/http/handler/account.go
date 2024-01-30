@@ -352,9 +352,105 @@ func (ah *AccountHandler) UpdateUserInfo(c echo.Context) error {
 	return c.JSON(http.StatusOK, accountDTO)
 }
 
+func (ah *AccountHandler) Delete(c echo.Context) error {
+	var req request.AccountRequestById
+	var claims map[string]interface{}
+
+	// bind fields path params and body
+	if err := c.Bind(&req); err != nil {
+		return echo.ErrBadRequest
+	}
+	// bind fields in header (jwt token)
+	binder := &echo.DefaultBinder{}
+	if err := binder.BindHeaders(c, &req); err != nil {
+		return echo.ErrBadRequest
+	} else {
+		parts := strings.Split(req.Token, " ")
+		if len(parts) != 2 {
+			return echo.ErrBadRequest
+		} else if parts[0] != "Bearer" {
+			return echo.ErrBadRequest
+		} else {
+			req.Token = parts[1]
+			if claims, err = ah.jwtConfig.ValidateToken(req.Token); err != nil {
+				return echo.NewHTTPError(http.StatusUnauthorized, err.Error())
+			}
+		}
+	}
+
+	if err := req.Validate(); err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
+	}
+
+	accounts := ah.repo.Get(c.Request().Context(), accountrepo.GetCommand{
+		ID: &req.ID,
+	})
+	if len(accounts) > 1 {
+		return echo.ErrInternalServerError
+	} else if len(accounts) == 0 {
+		return echo.NewHTTPError(http.StatusNotFound, model.ErrUserNotFound.Error())
+	}
+
+	account := accounts[0]
+	if claims["id"] != account.ID {
+		return echo.NewHTTPError(http.StatusForbidden, model.ErrAccessForbidden.Error())
+	}
+
+	if err := ah.repo.Delete(c.Request().Context(), accountrepo.GetCommand{ID: &account.ID}); err != nil {
+		return echo.ErrInternalServerError
+	}
+
+	// and here we may need to do other things due to deletion of user account!
+
+	return c.NoContent(http.StatusOK)
+}
+
+func (ah *AccountHandler) Search(c echo.Context) error {
+	var req request.AccountSearch
+
+	// bind fields query params
+	if err := c.Bind(&req); err != nil {
+		return echo.ErrBadRequest
+	}
+	// bind fields in header (jwt token)
+	binder := &echo.DefaultBinder{}
+	if err := binder.BindHeaders(c, &req); err != nil {
+		return echo.ErrBadRequest
+	} else {
+		parts := strings.Split(*req.Token, " ")
+		if len(parts) != 2 {
+			return echo.ErrBadRequest
+		} else if parts[0] != "Bearer" {
+			return echo.ErrBadRequest
+		} else {
+			*req.Token = parts[1]
+			if _, err = ah.jwtConfig.ValidateToken(*req.Token); err != nil {
+				return echo.NewHTTPError(http.StatusUnauthorized, err.Error())
+			}
+		}
+	}
+
+	if err := req.Validate(); err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
+	}
+
+	accounts := ah.repo.Get(c.Request().Context(), accountrepo.GetCommand{
+		ID:        req.ID,
+		Username:  req.Username,
+		FirstName: req.Firstname,
+		LastName:  req.Lastname,
+		Phone:     req.Phone,
+	})
+
+	// here we can again create accountDTO array, but our current
+	// accounts array is a subset of accountDTO, so we just return it
+	return c.JSON(http.StatusOK, accounts)
+}
+
 func (ah *AccountHandler) RegisterMethods(g *echo.Group) {
 	g.POST("register", ah.Register)
 	g.POST("login", ah.chooseLogin)
 	g.GET("users/:id", ah.GetUserInfo)
 	g.PATCH("users/:id", ah.UpdateUserInfo)
+	g.DELETE("users/:id", ah.Delete)
 }
