@@ -7,6 +7,7 @@ import (
 	"github.com/SepehrNoey/Web-Based-Messenger/internal/domain/model"
 	"github.com/SepehrNoey/Web-Based-Messenger/internal/domain/repository/accountrepo"
 	"github.com/SepehrNoey/Web-Based-Messenger/internal/infra/http/auth"
+	"github.com/SepehrNoey/Web-Based-Messenger/internal/infra/http/clientdto"
 	"github.com/SepehrNoey/Web-Based-Messenger/internal/infra/http/request"
 	"github.com/labstack/echo/v4"
 )
@@ -371,7 +372,7 @@ func (ah *AccountHandler) Search(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
 	}
 
-	_, err := ah.jwtConfig.ValidateToken(*req.Token)
+	claims, err := ah.jwtConfig.ValidateToken(*req.Token)
 	if err != nil {
 		return echo.NewHTTPError(http.StatusUnauthorized, err.Error())
 	}
@@ -384,7 +385,19 @@ func (ah *AccountHandler) Search(c echo.Context) error {
 		Phone:     req.Phone,
 	})
 
-	return c.JSON(http.StatusOK, accounts)
+	// creating contactDTO of these accounts (to avoid sending all account info)
+	id, _ := claims["id"].(uint64)
+	clientAcc := ah.repo.Get(c.Request().Context(), accountrepo.GetCommand{ID: &id})
+	var contactDTOs []clientdto.ContactDTO
+	for _, acc := range accounts {
+		dto, err := GetContactDTOPrivacyConsidered(c, &acc, &clientAcc[0].ID)
+		if err != nil {
+			return err
+		}
+		contactDTOs = append(contactDTOs, *dto)
+	}
+
+	return c.JSON(http.StatusOK, contactDTOs)
 }
 
 func (ah *AccountHandler) RegisterMethods(g *echo.Group) {
