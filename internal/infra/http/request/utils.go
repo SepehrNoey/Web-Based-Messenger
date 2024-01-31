@@ -13,6 +13,7 @@ type ReqStructWithToken interface {
 	SetToken(token string)
 }
 
+// binds the values in body, query and path param
 func Bind(reqSt interface{}, c echo.Context) error {
 	if err := c.Bind(reqSt); err != nil {
 		return echo.ErrBadRequest

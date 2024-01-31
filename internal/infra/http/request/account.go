@@ -1,5 +1,7 @@
 package request
 
+import "github.com/SepehrNoey/Web-Based-Messenger/internal/domain/model"
+
 type AccountCreate struct {
 	Firstname *string `json:"firstname,omitempty" validate:"required"`
 	Phone     *string `json:"phone,omitempty" validate:"e164,required"`
@@ -31,13 +33,16 @@ type AccountUpdate struct {
 	ID    *uint64 `param:"id,omitempty" validate:"number,required"`
 	Token *string `header:"Authorization,omitempty" validate:"required"`
 
-	Firstname *string `json:"firstname,omitempty"`
-	Phone     *string `json:"phone,omitempty" validate:"e164"`
-	Username  *string `json:"username,omitempty"`
-	Password  *string `json:"password,omitempty" validate:"min=8"`
-	Lastname  *string `json:"lastname,omitempty"`
-	ImagePath *string `json:"img_path,omitempty" validate:"url"`
-	Bio       *string `json:"bio,omitempty" validate:"max=100"`
+	Firstname     *string         `json:"firstname,omitempty"`
+	Lastname      *string         `json:"lastname,omitempty"`
+	Phone         *string         `json:"phone,omitempty" validate:"e164"`
+	Username      *string         `json:"username,omitempty"`
+	Password      *string         `json:"password,omitempty" validate:"min=8"`
+	ImagePath     *string         `json:"img_path,omitempty" validate:"url"`
+	Bio           *string         `json:"bio,omitempty" validate:"max=100"`
+	ShowPhone     *model.ShowType `json:"show_phone,omitempty" validate:"oneof=All Noone Contacts-Only"`
+	ShowImg       *model.ShowType `json:"show_img,omitempty" validate:"oneof=All Noone Contacts-Only"`
+	ShowLastVisit *model.ShowType `json:"show_last_visit,omitempty" validate:"oneof=All Noone Contacts-Only"`
 }
 
 func (au *AccountUpdate) GetToken() string {

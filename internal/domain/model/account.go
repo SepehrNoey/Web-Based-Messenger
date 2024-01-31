@@ -16,8 +16,11 @@ type Account struct {
 	Password  string    `json:"password,omitempty"`
 	ImagePath string    `json:"img_path,omitempty"`
 	Bio       string    `json:"bio,omitempty"`
-	Status    string    `json:"status,omitempty"`
 	LastVisit time.Time `json:"last_visit,omitempty"`
+
+	ShowPhone     ShowType `json:"show_phone,omitempty"`
+	ShowImg       ShowType `json:"show_img,omitempty"`
+	ShowLastVisit ShowType `json:"show_last_visit,omitempty"`
 }
 
 var ErrUsernameDuplicate = errors.New("username already exists")

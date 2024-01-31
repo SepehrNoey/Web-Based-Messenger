@@ -7,7 +7,6 @@ import (
 	"github.com/SepehrNoey/Web-Based-Messenger/internal/domain/model"
 	"github.com/SepehrNoey/Web-Based-Messenger/internal/domain/repository/accountrepo"
 	"github.com/SepehrNoey/Web-Based-Messenger/internal/infra/http/auth"
-	"github.com/SepehrNoey/Web-Based-Messenger/internal/infra/http/clientdto"
 	"github.com/SepehrNoey/Web-Based-Messenger/internal/infra/http/request"
 	"github.com/labstack/echo/v4"
 )
@@ -68,16 +67,18 @@ func (ah *AccountHandler) Register(c echo.Context) error {
 	}
 
 	if err := ah.repo.Create(c.Request().Context(), model.Account{
-		ID:        uint64(lastRegisteredID + 1),
-		FirstName: *req.Firstname,
-		LastName:  *req.Lastname,
-		Phone:     *req.Phone,
-		Username:  *req.Username,
-		Password:  *req.Password,
-		ImagePath: *req.ImagePath,
-		Bio:       *req.Bio,
-		// won't give status field
-		LastVisit: time.Now(),
+		ID:            uint64(lastRegisteredID + 1),
+		FirstName:     *req.Firstname,
+		LastName:      *req.Lastname,
+		Phone:         *req.Phone,
+		Username:      *req.Username,
+		Password:      *req.Password,
+		ImagePath:     *req.ImagePath,
+		Bio:           *req.Bio,
+		LastVisit:     time.Now(),
+		ShowPhone:     model.ContactsOnly,
+		ShowImg:       model.All,
+		ShowLastVisit: model.All,
 	}); err != nil {
 		return echo.ErrInternalServerError
 	}
@@ -202,18 +203,7 @@ func (ah *AccountHandler) GetUserInfo(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusForbidden, model.ErrAccessForbidden.Error())
 	}
 
-	accountDTO := clientdto.Account{ // we don't send some fields like password, etc...
-		ID:        account.ID,
-		FirstName: account.FirstName,
-		LastName:  account.LastName,
-		Phone:     account.Phone,
-		Username:  account.Username,
-		ImagePath: account.ImagePath,
-		Bio:       account.Bio,
-		Status:    account.Status,
-		LastVisit: account.LastVisit,
-	}
-	return c.JSON(http.StatusOK, accountDTO)
+	return c.JSON(http.StatusOK, account)
 
 }
 
@@ -248,18 +238,7 @@ func (ah *AccountHandler) UpdateUserInfo(c echo.Context) error {
 	}
 
 	updatedModel := model.Account{ID: *req.ID, LastVisit: time.Now()}
-	if req.Firstname != nil {
-		updatedModel.FirstName = *req.Firstname
-	} else {
-		updatedModel.FirstName = account.FirstName
-	}
-
-	if req.Lastname != nil {
-		updatedModel.LastName = *req.Lastname
-	} else {
-		updatedModel.LastName = account.LastName
-	}
-
+	// first updating unique fields
 	if req.Phone != nil {
 		existingAccs := ah.repo.Get(c.Request().Context(), accountrepo.GetCommand{Phone: req.Phone})
 		if len(existingAccs) > 0 {
@@ -282,12 +261,6 @@ func (ah *AccountHandler) UpdateUserInfo(c echo.Context) error {
 		updatedModel.Username = account.Username
 	}
 
-	if req.Password != nil {
-		updatedModel.Password = *req.Password
-	} else {
-		updatedModel.Password = account.Password
-	}
-
 	if req.ImagePath != nil {
 		existingAccs := ah.repo.Get(c.Request().Context(), accountrepo.GetCommand{ImagePath: req.ImagePath})
 		if len(existingAccs) > 0 {
@@ -299,28 +272,54 @@ func (ah *AccountHandler) UpdateUserInfo(c echo.Context) error {
 		updatedModel.ImagePath = account.ImagePath
 	}
 
+	// now updating non-unique fields
+	if req.Firstname != nil {
+		updatedModel.FirstName = *req.Firstname
+	} else {
+		updatedModel.FirstName = account.FirstName
+	}
+
+	if req.Lastname != nil {
+		updatedModel.LastName = *req.Lastname
+	} else {
+		updatedModel.LastName = account.LastName
+	}
+
+	if req.Password != nil {
+		updatedModel.Password = *req.Password
+	} else {
+		updatedModel.Password = account.Password
+	}
+
 	if req.Bio != nil {
 		updatedModel.Bio = *req.Bio
 	} else {
 		updatedModel.Bio = account.Bio
 	}
 
+	if req.ShowImg != nil {
+		updatedModel.ShowImg = *req.ShowImg
+	} else {
+		updatedModel.ShowImg = account.ShowImg
+	}
+
+	if req.ShowLastVisit != nil {
+		updatedModel.ShowLastVisit = *req.ShowLastVisit
+	} else {
+		updatedModel.ShowLastVisit = account.ShowLastVisit
+	}
+
+	if req.ShowPhone != nil {
+		updatedModel.ShowPhone = *req.ShowPhone
+	} else {
+		updatedModel.ShowPhone = account.ShowPhone
+	}
+
 	if err := ah.repo.Update(c.Request().Context(), accountrepo.GetCommand{ID: &account.ID}, updatedModel); err != nil {
 		return echo.ErrInternalServerError
 	}
 
-	accountDTO := clientdto.Account{
-		ID:        updatedModel.ID,
-		FirstName: updatedModel.FirstName,
-		LastName:  updatedModel.LastName,
-		Phone:     updatedModel.Phone,
-		Username:  updatedModel.Username,
-		ImagePath: updatedModel.ImagePath,
-		Bio:       updatedModel.Bio,
-		Status:    updatedModel.Status,
-		LastVisit: updatedModel.LastVisit,
-	}
-	return c.JSON(http.StatusOK, accountDTO)
+	return c.JSON(http.StatusOK, updatedModel)
 }
 
 func (ah *AccountHandler) Delete(c echo.Context) error {
@@ -385,8 +384,6 @@ func (ah *AccountHandler) Search(c echo.Context) error {
 		Phone:     req.Phone,
 	})
 
-	// here we can again create accountDTO array, but our current
-	// accounts array is a subset of accountDTO, so we just return it
 	return c.JSON(http.StatusOK, accounts)
 }
 
