@@ -28,4 +28,3 @@ var ErrPhoneDuplicate = errors.New("phone number already exists")
 var ErrImagePathDuplicate = errors.New("image path already exists")
 var ErrUserNotFound = errors.New("user not found")
 var ErrInvalidCredentials = errors.New("invalid credentials") // for incorrect password, ...
-var ErrAccessForbidden = errors.New("access to private resources is forbidden")

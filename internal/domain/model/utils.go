@@ -1,5 +1,7 @@
 package model
 
+import "errors"
+
 type ShowType string
 
 const (
@@ -14,3 +16,5 @@ const (
 	Online  Status = "Online"
 	Offline Status = "Offline"
 )
+
+var ErrAccessForbidden = errors.New("access to private resources is forbidden")
