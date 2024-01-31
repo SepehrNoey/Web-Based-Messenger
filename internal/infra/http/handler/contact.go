@@ -192,3 +192,9 @@ func (ch *ContactHandler) Delete(c echo.Context) error {
 
 	return c.NoContent(http.StatusOK)
 }
+
+func (ch *ContactHandler) RegisterMethods(g *echo.Group) {
+	g.GET("users/:id/contacts", ch.Get)
+	g.POST("users/:id/contacts", ch.Create)
+	g.DELETE("users/:id/contacts/:contact_id", ch.Delete)
+}
