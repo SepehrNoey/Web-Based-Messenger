@@ -3,12 +3,12 @@ package handler
 import (
 	"net/http"
 
-	"github.com/SepehrNoey/Web-Based-Messenger/internal/domain/model"
-	"github.com/SepehrNoey/Web-Based-Messenger/internal/domain/repository/accountrepo"
-	"github.com/SepehrNoey/Web-Based-Messenger/internal/domain/repository/contactrepo"
-	"github.com/SepehrNoey/Web-Based-Messenger/internal/infra/http/auth"
-	"github.com/SepehrNoey/Web-Based-Messenger/internal/infra/http/clientdto"
-	"github.com/SepehrNoey/Web-Based-Messenger/internal/infra/http/request"
+	"github.com/SepehrNoey/Web-Based-Messenger/Back-end/internal/domain/model"
+	"github.com/SepehrNoey/Web-Based-Messenger/Back-end/internal/domain/repository/accountrepo"
+	"github.com/SepehrNoey/Web-Based-Messenger/Back-end/internal/domain/repository/contactrepo"
+	"github.com/SepehrNoey/Web-Based-Messenger/Back-end/internal/infra/http/auth"
+	"github.com/SepehrNoey/Web-Based-Messenger/Back-end/internal/infra/http/clientdto"
+	"github.com/SepehrNoey/Web-Based-Messenger/Back-end/internal/infra/http/request"
 	"github.com/labstack/echo/v4"
 )
 

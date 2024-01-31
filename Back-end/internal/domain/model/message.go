@@ -1,9 +1,12 @@
 package model
 
-import "time"
+import (
+	"errors"
+	"time"
+)
 
 type Message struct {
-	ID         uint64    `json:"id,omitempty"`
+	ID         uint64    `json:"message_id,omitempty"`
 	ChatID     uint64    `json:"chat_id,omitempty"`
 	SenderID   uint64    `json:"sender_id,omitempty"`
 	ReceiverID uint64    `json:"receiver_id,omitempty"`
@@ -12,3 +15,5 @@ type Message struct {
 	CreatedAt  time.Time `json:"created_at,omitempty"` // sending time
 	UpdatedAt  time.Time `json:"updated_at,omitempty"` // added this for edit a message
 }
+
+var ErrMessageNotFound = errors.New("message not found")

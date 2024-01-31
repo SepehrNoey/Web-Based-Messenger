@@ -1,6 +1,6 @@
 package request
 
-import "github.com/SepehrNoey/Web-Based-Messenger/internal/domain/model"
+import "github.com/SepehrNoey/Web-Based-Messenger/Back-end/internal/domain/model"
 
 type AccountCreate struct {
 	Firstname *string `json:"firstname,omitempty" validate:"required"`

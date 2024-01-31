@@ -1,18 +1,19 @@
 package handler
 
 import (
+	"fmt"
 	"net/http"
 	"time"
 
-	"github.com/SepehrNoey/Web-Based-Messenger/internal/domain/model"
-	"github.com/SepehrNoey/Web-Based-Messenger/internal/domain/repository/accountrepo"
-	"github.com/SepehrNoey/Web-Based-Messenger/internal/infra/http/auth"
-	"github.com/SepehrNoey/Web-Based-Messenger/internal/infra/http/clientdto"
-	"github.com/SepehrNoey/Web-Based-Messenger/internal/infra/http/request"
+	"github.com/SepehrNoey/Web-Based-Messenger/Back-end/internal/domain/model"
+	"github.com/SepehrNoey/Web-Based-Messenger/Back-end/internal/domain/repository/accountrepo"
+	"github.com/SepehrNoey/Web-Based-Messenger/Back-end/internal/infra/http/auth"
+	"github.com/SepehrNoey/Web-Based-Messenger/Back-end/internal/infra/http/clientdto"
+	"github.com/SepehrNoey/Web-Based-Messenger/Back-end/internal/infra/http/request"
 	"github.com/labstack/echo/v4"
 )
 
-var lastRegisteredID = 0
+var lastRegisteredAccountID = 0
 
 type AccountHandler struct {
 	repo      accountrepo.Repository
@@ -68,7 +69,7 @@ func (ah *AccountHandler) Register(c echo.Context) error {
 	}
 
 	if err := ah.repo.Create(c.Request().Context(), model.Account{
-		ID:            uint64(lastRegisteredID + 1),
+		ID:            uint64(lastRegisteredAccountID + 1),
 		FirstName:     *req.Firstname,
 		LastName:      *req.Lastname,
 		Phone:         *req.Phone,
@@ -84,8 +85,8 @@ func (ah *AccountHandler) Register(c echo.Context) error {
 		return echo.ErrInternalServerError
 	}
 
-	lastRegisteredID++
-	return c.NoContent(http.StatusCreated)
+	lastRegisteredAccountID++
+	return c.JSON(http.StatusCreated, fmt.Sprintf("id: %v", lastRegisteredAccountID))
 }
 
 func (ah *AccountHandler) LoginByUsername(c echo.Context) error {

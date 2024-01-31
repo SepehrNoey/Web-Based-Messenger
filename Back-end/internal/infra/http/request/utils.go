@@ -3,7 +3,7 @@ package request
 import (
 	"fmt"
 
-	"github.com/SepehrNoey/Web-Based-Messenger/internal/infra/http/auth"
+	"github.com/SepehrNoey/Web-Based-Messenger/Back-end/internal/infra/http/auth"
 	"github.com/go-playground/validator/v10"
 	"github.com/labstack/echo/v4"
 )
@@ -65,4 +65,16 @@ func (tid *TokenAndID) GetToken() string {
 
 func (tid *TokenAndID) SetToken(token string) {
 	*tid.Token = token
+}
+
+type TokenOnly struct {
+	Token *string `header:"Authorization,omitempty" validate:"required"`
+}
+
+func (t *TokenOnly) GetToken() string {
+	return *t.Token
+}
+
+func (t *TokenOnly) SetToken(token string) {
+	*t.Token = token
 }

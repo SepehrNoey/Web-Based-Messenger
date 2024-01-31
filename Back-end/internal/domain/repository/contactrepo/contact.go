@@ -3,7 +3,7 @@ package contactrepo
 import (
 	"context"
 
-	"github.com/SepehrNoey/Web-Based-Messenger/internal/domain/model"
+	"github.com/SepehrNoey/Web-Based-Messenger/Back-end/internal/domain/model"
 )
 
 type GetCommand struct {
