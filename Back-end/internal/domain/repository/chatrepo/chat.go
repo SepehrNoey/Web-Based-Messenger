@@ -7,9 +7,8 @@ import (
 )
 
 type GetCommand struct {
-	ID       *uint64
-	Members  *[]uint64 // in search by members, the chat must contain all members, but order isn't important
-	Messages *[]model.Message
+	ID      *uint64
+	Members *[]uint64 // in search by members, the chat must contain all members, but order isn't important
 }
 
 type Repository interface {

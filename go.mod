@@ -11,6 +11,7 @@ require github.com/gorilla/websocket v1.5.1
 require github.com/go-playground/validator/v10 v10.17.0
 
 require github.com/golang-jwt/jwt/v5 v5.2.0
+require	gorm.io/gorm v1.25.6
 
 require (
 	github.com/gabriel-vasile/mimetype v1.4.2 // indirect
@@ -28,5 +29,4 @@ require (
 	golang.org/x/net v0.19.0 // indirect
 	golang.org/x/sys v0.15.0 // indirect
 	golang.org/x/text v0.14.0 // indirect
-	gorm.io/gorm v1.25.6 // indirect
 )

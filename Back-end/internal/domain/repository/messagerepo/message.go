@@ -7,10 +7,9 @@ import (
 )
 
 type GetCommand struct {
-	ID      *uint64
-	ChatID  *uint64
-	Members *[]uint64
-	Content *string
+	ID       *uint64
+	ChatID   *uint64
+	SenderID *uint64
 }
 
 type Repository interface {

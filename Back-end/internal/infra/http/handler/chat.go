@@ -7,7 +7,9 @@ import (
 	"github.com/SepehrNoey/Web-Based-Messenger/Back-end/internal/domain/model"
 	"github.com/SepehrNoey/Web-Based-Messenger/Back-end/internal/domain/repository/accountrepo"
 	"github.com/SepehrNoey/Web-Based-Messenger/Back-end/internal/domain/repository/chatrepo"
+	"github.com/SepehrNoey/Web-Based-Messenger/Back-end/internal/domain/repository/messagerepo"
 	"github.com/SepehrNoey/Web-Based-Messenger/Back-end/internal/infra/http/auth"
+	"github.com/SepehrNoey/Web-Based-Messenger/Back-end/internal/infra/http/clientdto"
 	"github.com/SepehrNoey/Web-Based-Messenger/Back-end/internal/infra/http/request"
 	"github.com/labstack/echo/v4"
 )
@@ -15,15 +17,17 @@ import (
 var lastRegisteredChatID = 0
 
 type ChatHandler struct {
-	chatRepo  chatrepo.Repository
 	accRepo   accountrepo.Repository
+	chatRepo  chatrepo.Repository
+	msgRepo   messagerepo.Repository
 	jwtConfig auth.JWTConfig
 }
 
-func NewChatHandler(chatRepo chatrepo.Repository, accRepo accountrepo.Repository, jwtConfig auth.JWTConfig) *ChatHandler {
+func NewChatHandler(accRepo accountrepo.Repository, chatRepo chatrepo.Repository, msgRepo messagerepo.Repository, jwtConfig auth.JWTConfig) *ChatHandler {
 	return &ChatHandler{
-		chatRepo:  chatRepo,
 		accRepo:   accRepo,
+		chatRepo:  chatRepo,
+		msgRepo:   msgRepo,
 		jwtConfig: jwtConfig,
 	}
 }
@@ -78,9 +82,8 @@ func (ch *ChatHandler) Create(c echo.Context) error {
 	}
 
 	if err := ch.chatRepo.Create(c.Request().Context(), model.Chat{
-		ID:       uint64(lastRegisteredChatID + 1),
-		Members:  []uint64{userID, *req.ContactID},
-		Messages: []model.Message{},
+		ID:      uint64(lastRegisteredChatID + 1),
+		Members: []uint64{userID, *req.ContactID},
 	}); err != nil {
 		return echo.ErrInternalServerError
 	}
@@ -148,7 +151,18 @@ func (ch *ChatHandler) GetByID(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusForbidden, model.ErrAccessForbidden.Error())
 	}
 
-	return c.JSON(http.StatusOK, chat)
+	msgs := ch.msgRepo.Get(c.Request().Context(), messagerepo.GetCommand{
+		ChatID: req.ID,
+	})
+	dto := clientdto.ChatWithContentDTO{
+		ID:        req.ID,
+		Members:   &chat.Members,
+		CreatedAt: &chat.CreatedAt,
+		UpdatedAt: &chat.UpdatedAt,
+		Messages:  &msgs,
+	}
+
+	return c.JSON(http.StatusOK, dto)
 
 }
 
@@ -227,29 +241,24 @@ func (ch *ChatHandler) DeleteMsg(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusForbidden, model.ErrAccessForbidden.Error())
 	}
 
-	index := -1
-	for i, msg := range chat.Messages {
-		if msg.ID == *req.MsgID {
-			index = i
-			break
-		}
-	}
-	if index == -1 {
+	msgs := ch.msgRepo.Get(c.Request().Context(), messagerepo.GetCommand{
+		ID:     req.MsgID,
+		ChatID: req.ChatID,
+	})
+	if len(msgs) > 1 {
+		return echo.ErrInternalServerError
+	} else if len(msgs) == 0 {
 		return echo.NewHTTPError(http.StatusNotFound, model.ErrMessageNotFound.Error())
-	} else {
-		chat.Messages = append(chat.Messages[:index], chat.Messages[index+1:]...)
-		if err := ch.chatRepo.Update(c.Request().Context(), chatrepo.GetCommand{
-			ID:      &chat.ID,
-			Members: &chat.Members,
-		}, model.Chat{
-			ID:       chat.ID,
-			Members:  chat.Members,
-			Messages: chat.Messages,
-		}); err != nil {
-			return echo.ErrInternalServerError
-		}
 	}
 
+	if err := ch.msgRepo.Delete(c.Request().Context(), messagerepo.GetCommand{
+		ID:     req.MsgID,
+		ChatID: req.ChatID,
+	}); err != nil {
+		return echo.ErrInternalServerError
+	}
+
+	// handle updating the deletion of msg in client app of the other clients !
 	return c.NoContent(http.StatusOK)
 }
 
