@@ -87,20 +87,19 @@ func NewContactHandler(cntRepo contactrepo.Repository, accRepo accountrepo.Repos
 }
 
 func (ch *ContactHandler) Get(c echo.Context) error {
-	var req request.TokenAndID
-
+	var req request.TokenOnly
+	reqID, err := request.GetUintParam(c, "id")
 	if err := request.BindT(&req, c); err != nil {
 		return err
 	}
 
 	var claims map[string]interface{}
-	var err error
-	if claims, err = ch.jwtConfig.ValidateToken(*req.Token); err != nil {
+	if claims, err = ch.jwtConfig.ValidateToken(req.Token); err != nil {
 		return echo.NewHTTPError(http.StatusUnauthorized, err.Error())
 	}
 
 	id, _ := claims["id"].(uint64)
-	if id != *req.ID {
+	if id != reqID {
 		return echo.NewHTTPError(http.StatusForbidden, model.ErrAccessForbidden.Error())
 	}
 
@@ -142,20 +141,20 @@ func (ch *ContactHandler) Create(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
 	}
 
-	claims, err := ch.jwtConfig.ValidateToken(*req.Token)
+	claims, err := ch.jwtConfig.ValidateToken(req.Token)
 	if err != nil {
 		return echo.NewHTTPError(http.StatusUnauthorized, err.Error())
 	}
 
 	userID, _ := claims["id"].(uint64)
-	if userID != *req.UserID {
+	if userID != req.UserID {
 		return echo.NewHTTPError(http.StatusForbidden, model.ErrAccessForbidden.Error())
 	}
 
 	if err := ch.cntRepo.Create(c.Request().Context(), model.Contact{
-		UserID:      *req.UserID,
-		ContactID:   *req.ContactID,
-		ContactName: *req.ContactName,
+		UserID:      req.UserID,
+		ContactID:   req.ContactID,
+		ContactName: req.ContactName,
 	}); err != nil {
 		return echo.ErrInternalServerError
 	}
@@ -173,19 +172,19 @@ func (ch *ContactHandler) Delete(c echo.Context) error {
 		return err
 	}
 
-	claims, err := ch.jwtConfig.ValidateToken(*req.Token)
+	claims, err := ch.jwtConfig.ValidateToken(req.Token)
 	if err != nil {
 		return echo.NewHTTPError(http.StatusUnauthorized, err.Error())
 	}
 
 	userID, _ := claims["id"].(uint64)
-	if userID != *req.UserID {
+	if userID != req.UserID {
 		return echo.NewHTTPError(http.StatusForbidden, model.ErrAccessForbidden.Error())
 	}
 
 	if err := ch.cntRepo.Delete(c.Request().Context(), contactrepo.GetCommand{
-		UserID:    req.UserID,
-		ContactID: req.ContactID,
+		UserID:    &req.UserID,
+		ContactID: &req.ContactID,
 	}); err != nil {
 		return echo.ErrInternalServerError
 	}
@@ -194,7 +193,7 @@ func (ch *ContactHandler) Delete(c echo.Context) error {
 }
 
 func (ch *ContactHandler) RegisterMethods(g *echo.Group) {
-	g.GET("users/:id/contacts", ch.Get)
-	g.POST("users/:id/contacts", ch.Create)
-	g.DELETE("users/:id/contacts/:contact_id", ch.Delete)
+	g.GET(":id/contacts", ch.Get)
+	g.POST(":id/contacts", ch.Create)
+	g.DELETE(":id/contacts/:contact_id", ch.Delete)
 }

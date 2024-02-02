@@ -53,14 +53,14 @@ func (mh *MessageHandler) Subscribe(c echo.Context) error {
 
 	var claims map[string]interface{}
 	var err error
-	claims, err = mh.jwtConfig.ValidateToken(*req.Token)
+	claims, err = mh.jwtConfig.ValidateToken(req.Token)
 	if err != nil {
 		return echo.NewHTTPError(http.StatusUnauthorized, err.Error())
 	}
 
 	userID, _ := claims["id"].(uint64)
 	username, _ := claims["username"].(string)
-	if userID != *req.UserID {
+	if userID != req.UserID {
 		return echo.NewHTTPError(http.StatusForbidden, model.ErrAccessForbidden.Error())
 	}
 
@@ -71,9 +71,9 @@ func (mh *MessageHandler) Subscribe(c echo.Context) error {
 	}
 
 	chatConnMap := (*mh.userOpenConns)[userID]
-	_, ok = chatConnMap[*req.ChatID]
+	_, ok = chatConnMap[req.ChatID]
 	if ok { // if a connection for that user in that chat exists, close it and later make another one
-		(*mh.userOpenConns)[userID][*req.ChatID].Close()
+		(*mh.userOpenConns)[userID][req.ChatID].Close()
 	}
 
 	// create a new websocket
@@ -82,7 +82,7 @@ func (mh *MessageHandler) Subscribe(c echo.Context) error {
 		return echo.ErrBadRequest
 	}
 
-	(*mh.userOpenConns)[userID][*req.ChatID] = ws
+	(*mh.userOpenConns)[userID][req.ChatID] = ws
 	mh.connsMutex.Unlock()
 
 	ws.SetReadLimit(int64(model.MaxMsgSize))
@@ -95,7 +95,7 @@ readLoop:
 				break
 			}
 
-			fmt.Printf("error while receiving msg from user: [%v] , chatID: [%v]\n", username, *req.ChatID)
+			fmt.Printf("error while receiving msg from user: [%v] , chatID: [%v]\n", username, req.ChatID)
 		}
 
 		switch msgType {
@@ -105,20 +105,20 @@ readLoop:
 			lastRegisteredMessageID++
 			msg := model.Message{}
 			msg.ID = uint64(lastRegisteredMessageID)
-			msg.ChatID = *req.ChatID
-			msg.SenderID = *req.UserID
+			msg.ChatID = req.ChatID
+			msg.SenderID = req.UserID
 			msg.Content = string(msgStr)
 			*mh.broadcast <- msg
 
 		default:
-			fmt.Printf("message type not supported, from username: [%v], chatID: [%v]\n", username, *req.ChatID)
+			fmt.Printf("message type not supported, from username: [%v], chatID: [%v]\n", username, req.ChatID)
 			continue
 		}
 
 	}
 
 	ws.Close()
-	fmt.Printf("closed socket for user: [%v], chatID: [%v]\n", username, *req.ChatID)
+	fmt.Printf("closed socket for user: [%v], chatID: [%v]\n", username, req.ChatID)
 	return nil
 }
 
@@ -140,5 +140,5 @@ func (mh *MessageHandler) HandleMessages(broadcast *chan model.Message) {
 }
 
 func (mh *MessageHandler) RegisterMethods(g *echo.Group) {
-	g.POST("chats/:chat_id/subscribe/:id", mh.Subscribe)
+	g.POST(":chat_id/subscribe/:id", mh.Subscribe)
 }

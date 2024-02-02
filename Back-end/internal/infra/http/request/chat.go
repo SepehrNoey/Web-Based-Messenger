@@ -1,41 +1,41 @@
 package request
 
 type ChatCreate struct {
-	Token     *string `header:"Authorization,omitempty" validate:"required"`
-	ContactID *uint64 `json:"contact_id,omitempty" validate:"number,required"`
+	Token     string `header:"Authorization,omitempty" validate:"required"`
+	ContactID uint64 `json:"contact_id,omitempty" validate:"number,required"`
 }
 
 func (cc *ChatCreate) GetToken() string {
-	return *cc.Token
+	return cc.Token
 }
 
 func (cc *ChatCreate) SetToken(token string) {
-	*cc.Token = token
+	cc.Token = token
 }
 
 type TokenAndChatID struct {
-	ID    *uint64 `param:"chat_id,omitempty" validate:"number,required"`
-	Token *string `header:"Authorization,omitempty" validate:"required"`
+	ID    uint64 `param:"chat_id,omitempty" validate:"number,required"`
+	Token string `header:"Authorization,omitempty" validate:"required"`
 }
 
 func (tc *TokenAndChatID) GetToken() string {
-	return *tc.Token
+	return tc.Token
 }
 
 func (tc *TokenAndChatID) SetToken(token string) {
-	*tc.Token = token
+	tc.Token = token
 }
 
 type ChatDeleteMsg struct {
-	ChatID *uint64 `param:"chat_id,omitempty" validate:"number,required"`
-	MsgID  *uint64 `param:"message_id,omitempty" validate:"number,required"`
-	Token  *string `header:"Authorization,omitempty" validate:"required"`
+	ChatID uint64 `param:"chat_id,omitempty" validate:"number,required"`
+	MsgID  uint64 `param:"message_id,omitempty" validate:"number,required"`
+	Token  string `header:"Authorization,omitempty" validate:"required"`
 }
 
 func (cdm *ChatDeleteMsg) GetToken() string {
-	return *cdm.Token
+	return cdm.Token
 }
 
 func (cdm *ChatDeleteMsg) SetToken(token string) {
-	*cdm.Token = token
+	cdm.Token = token
 }

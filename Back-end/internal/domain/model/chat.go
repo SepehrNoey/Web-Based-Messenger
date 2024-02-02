@@ -7,7 +7,7 @@ import (
 
 type Chat struct {
 	ID        uint64    `json:"chat_id,omitempty" gorm:"primaryKey"`
-	Members   []uint64  `json:"members,omitempty"`
+	Members   []uint64  `json:"members,omitempty" gorm:"type:bigint[]"`
 	CreatedAt time.Time `json:"created_at,omitempty"`
 	UpdatedAt time.Time `json:"updated_at,omitempty"`
 }

@@ -48,40 +48,42 @@ func (ah *AccountHandler) Register(c echo.Context) error {
 	}
 
 	accountsSameUsername := ah.repo.Get(c.Request().Context(), accountrepo.GetCommand{
-		Username: req.Username,
+		Username: &req.Username,
 	})
 	if len(accountsSameUsername) > 0 {
 		return echo.NewHTTPError(http.StatusBadRequest, model.ErrUsernameDuplicate.Error())
 	}
 
 	accountsSamePhone := ah.repo.Get(c.Request().Context(), accountrepo.GetCommand{
-		Phone: req.Phone,
+		Phone: &req.Phone,
 	})
 	if len(accountsSamePhone) > 0 {
 		return echo.NewHTTPError(http.StatusBadRequest, model.ErrPhoneDuplicate.Error())
 	}
 
 	accountsSameImgPath := ah.repo.Get(c.Request().Context(), accountrepo.GetCommand{
-		ImagePath: req.ImagePath,
+		ImagePath: &req.ImagePath,
 	})
 	if len(accountsSameImgPath) > 0 {
 		return echo.NewHTTPError(http.StatusBadRequest, model.ErrImagePathDuplicate.Error())
 	}
 
-	if err := ah.repo.Create(c.Request().Context(), model.Account{
+	theModel := model.Account{
 		ID:            uint64(lastRegisteredAccountID + 1),
-		FirstName:     *req.Firstname,
-		LastName:      *req.Lastname,
-		Phone:         *req.Phone,
-		Username:      *req.Username,
-		Password:      *req.Password,
-		ImagePath:     *req.ImagePath,
-		Bio:           *req.Bio,
+		FirstName:     req.Firstname,
+		LastName:      req.Lastname,
+		Phone:         req.Phone,
+		Username:      req.Username,
+		Password:      req.Password,
+		ImagePath:     req.ImagePath,
+		Bio:           req.Bio,
 		LastVisit:     time.Now(),
 		ShowPhone:     model.ContactsOnly,
 		ShowImg:       model.All,
 		ShowLastVisit: model.All,
-	}); err != nil {
+	}
+
+	if err := ah.repo.Create(c.Request().Context(), theModel); err != nil {
 		return echo.ErrInternalServerError
 	}
 
@@ -89,8 +91,8 @@ func (ah *AccountHandler) Register(c echo.Context) error {
 	return c.JSON(http.StatusCreated, fmt.Sprintf("id: %v", lastRegisteredAccountID))
 }
 
-func (ah *AccountHandler) LoginByUsername(c echo.Context) error {
-	var req request.AccountLoginByUsername
+func (ah *AccountHandler) Login(c echo.Context) error {
+	var req request.AccountLogin
 
 	if err := request.Bind(&req, c); err != nil {
 		return err
@@ -100,83 +102,62 @@ func (ah *AccountHandler) LoginByUsername(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
 	}
 
-	accounts := ah.repo.Get(c.Request().Context(), accountrepo.GetCommand{
-		Username: req.Username,
-	})
-	if len(accounts) > 1 {
-		return echo.ErrInternalServerError
-	} else if len(accounts) == 0 {
-		return echo.NewHTTPError(http.StatusNotFound, model.ErrUserNotFound.Error())
-	}
-
-	account := accounts[0]
-	if account.Password != *req.Password {
-		return echo.NewHTTPError(http.StatusBadRequest, model.ErrInvalidCredentials.Error())
-	}
-
-	token, err := ah.jwtConfig.CreateToken(ah.addClaims(&account))
-	if err != nil {
-		return echo.ErrInternalServerError
-	}
-
-	c.Response().Header().Set(echo.HeaderAuthorization, auth.GetAuthHeaderValue(token))
-	return c.NoContent(http.StatusOK)
-
-}
-
-func (ah *AccountHandler) LoginByPhone(c echo.Context) error {
-	var req request.AccountLoginByPhone
-
-	if err := request.Bind(&req, c); err != nil {
+	// now loging by username or phone, according to what is given
+	if (req.Phone == "" && req.Username == "") || (req.Phone != "" && req.Username != "") { // can't login by both or none given
 		return echo.ErrBadRequest
-	}
+	} else if req.Phone == "" { // login by username
+		accounts := ah.repo.Get(c.Request().Context(), accountrepo.GetCommand{
+			Username: &req.Username,
+		})
+		if len(accounts) > 1 {
+			return echo.ErrInternalServerError
+		} else if len(accounts) == 0 {
+			return echo.NewHTTPError(http.StatusNotFound, model.ErrUserNotFound.Error())
+		}
 
-	if err := request.Validate(&req); err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
-	}
+		account := accounts[0]
+		if account.Password != req.Password {
+			return echo.NewHTTPError(http.StatusBadRequest, model.ErrInvalidCredentials.Error())
+		}
 
-	accounts := ah.repo.Get(c.Request().Context(), accountrepo.GetCommand{
-		Phone: req.Phone,
-	})
-	if len(accounts) > 1 {
-		return echo.ErrInternalServerError
-	} else if len(accounts) == 0 {
-		return echo.NewHTTPError(http.StatusNotFound, model.ErrUserNotFound.Error())
-	}
+		token, err := ah.jwtConfig.CreateToken(ah.addClaims(&account))
+		if err != nil {
+			return echo.ErrInternalServerError
+		}
 
-	account := accounts[0]
-	if account.Password != *req.Password {
-		return echo.NewHTTPError(http.StatusBadRequest, model.ErrInvalidCredentials.Error())
-	}
+		c.Response().Header().Set(echo.HeaderAuthorization, auth.GetAuthHeaderValue(token))
+		return c.NoContent(http.StatusOK)
+	} else { // login by phone
+		accounts := ah.repo.Get(c.Request().Context(), accountrepo.GetCommand{
+			Phone: &req.Phone,
+		})
+		if len(accounts) > 1 {
+			return echo.ErrInternalServerError
+		} else if len(accounts) == 0 {
+			return echo.NewHTTPError(http.StatusNotFound, model.ErrUserNotFound.Error())
+		}
 
-	token, err := ah.jwtConfig.CreateToken(ah.addClaims(&account))
-	if err != nil {
-		return echo.ErrInternalServerError
-	}
+		account := accounts[0]
+		if account.Password != req.Password {
+			return echo.NewHTTPError(http.StatusBadRequest, model.ErrInvalidCredentials.Error())
+		}
 
-	c.Response().Header().Set(echo.HeaderAuthorization, auth.GetAuthHeaderValue(token))
-	return c.NoContent(http.StatusOK)
+		token, err := ah.jwtConfig.CreateToken(ah.addClaims(&account))
+		if err != nil {
+			return echo.ErrInternalServerError
+		}
 
-}
-
-func (ah *AccountHandler) chooseLogin(c echo.Context) error {
-	var req request.AccountLoginWholeData
-
-	if err := request.Bind(&req, c); err != nil {
-		return err
-	}
-
-	if *req.Phone == "" {
-		return ah.LoginByUsername(c)
-	} else if *req.Username == "" {
-		return ah.LoginByPhone(c)
-	} else {
-		return echo.ErrBadRequest
+		c.Response().Header().Set(echo.HeaderAuthorization, auth.GetAuthHeaderValue(token))
+		return c.NoContent(http.StatusOK)
 	}
 }
 
 func (ah *AccountHandler) GetUserInfo(c echo.Context) error {
-	var req request.TokenAndID
+	var req request.TokenOnly
+	id, err := request.GetUintParam(c, "id")
+	if err != nil {
+		return err
+	}
 	if err := request.BindT(&req, c); err != nil {
 		return err
 	}
@@ -185,14 +166,13 @@ func (ah *AccountHandler) GetUserInfo(c echo.Context) error {
 	}
 
 	var claims map[string]interface{}
-	var err error
-	claims, err = ah.jwtConfig.ValidateToken(*req.Token)
+	claims, err = ah.jwtConfig.ValidateToken(req.Token)
 	if err != nil {
 		return echo.NewHTTPError(http.StatusUnauthorized, err.Error())
 	}
 
 	accounts := ah.repo.Get(c.Request().Context(), accountrepo.GetCommand{
-		ID: req.ID,
+		ID: &id,
 	})
 	if len(accounts) > 1 {
 		return echo.ErrInternalServerError
@@ -220,13 +200,13 @@ func (ah *AccountHandler) UpdateUserInfo(c echo.Context) error {
 
 	var claims map[string]interface{}
 	var err error
-	claims, err = ah.jwtConfig.ValidateToken(*req.Token)
+	claims, err = ah.jwtConfig.ValidateToken(req.Token)
 	if err != nil {
 		return echo.NewHTTPError(http.StatusUnauthorized, err.Error())
 	}
 
 	accounts := ah.repo.Get(c.Request().Context(), accountrepo.GetCommand{
-		ID: req.ID,
+		ID: &req.ID,
 	})
 	if len(accounts) > 1 {
 		return echo.ErrInternalServerError
@@ -239,80 +219,80 @@ func (ah *AccountHandler) UpdateUserInfo(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusForbidden, model.ErrAccessForbidden.Error())
 	}
 
-	updatedModel := model.Account{ID: *req.ID, LastVisit: time.Now()}
+	updatedModel := model.Account{ID: req.ID, LastVisit: time.Now()}
 	// first updating unique fields
-	if req.Phone != nil {
-		existingAccs := ah.repo.Get(c.Request().Context(), accountrepo.GetCommand{Phone: req.Phone})
+	if req.Phone != "" {
+		existingAccs := ah.repo.Get(c.Request().Context(), accountrepo.GetCommand{Phone: &req.Phone})
 		if len(existingAccs) > 0 {
 			return echo.NewHTTPError(http.StatusBadRequest, model.ErrPhoneDuplicate.Error())
 		}
 
-		updatedModel.Phone = *req.Phone
+		updatedModel.Phone = req.Phone
 	} else {
 		updatedModel.Phone = account.Phone
 	}
 
-	if req.Username != nil {
-		existingAccs := ah.repo.Get(c.Request().Context(), accountrepo.GetCommand{Username: req.Username})
+	if req.Username != "" {
+		existingAccs := ah.repo.Get(c.Request().Context(), accountrepo.GetCommand{Username: &req.Username})
 		if len(existingAccs) > 0 {
 			return echo.NewHTTPError(http.StatusBadRequest, model.ErrUsernameDuplicate.Error())
 		}
 
-		updatedModel.Username = *req.Username
+		updatedModel.Username = req.Username
 	} else {
 		updatedModel.Username = account.Username
 	}
 
-	if req.ImagePath != nil {
-		existingAccs := ah.repo.Get(c.Request().Context(), accountrepo.GetCommand{ImagePath: req.ImagePath})
+	if req.ImagePath != "" {
+		existingAccs := ah.repo.Get(c.Request().Context(), accountrepo.GetCommand{ImagePath: &req.ImagePath})
 		if len(existingAccs) > 0 {
 			return echo.NewHTTPError(http.StatusBadRequest, model.ErrImagePathDuplicate.Error())
 		}
 
-		updatedModel.ImagePath = *req.ImagePath
+		updatedModel.ImagePath = req.ImagePath
 	} else {
 		updatedModel.ImagePath = account.ImagePath
 	}
 
 	// now updating non-unique fields
-	if req.Firstname != nil {
-		updatedModel.FirstName = *req.Firstname
+	if req.Firstname != "" {
+		updatedModel.FirstName = req.Firstname
 	} else {
 		updatedModel.FirstName = account.FirstName
 	}
 
-	if req.Lastname != nil {
-		updatedModel.LastName = *req.Lastname
+	if req.Lastname != "" {
+		updatedModel.LastName = req.Lastname
 	} else {
 		updatedModel.LastName = account.LastName
 	}
 
-	if req.Password != nil {
-		updatedModel.Password = *req.Password
+	if req.Password != "" {
+		updatedModel.Password = req.Password
 	} else {
 		updatedModel.Password = account.Password
 	}
 
-	if req.Bio != nil {
-		updatedModel.Bio = *req.Bio
+	if req.Bio != "" {
+		updatedModel.Bio = req.Bio
 	} else {
 		updatedModel.Bio = account.Bio
 	}
 
-	if req.ShowImg != nil {
-		updatedModel.ShowImg = *req.ShowImg
+	if req.ShowImg != "" {
+		updatedModel.ShowImg = req.ShowImg
 	} else {
 		updatedModel.ShowImg = account.ShowImg
 	}
 
-	if req.ShowLastVisit != nil {
-		updatedModel.ShowLastVisit = *req.ShowLastVisit
+	if req.ShowLastVisit != "" {
+		updatedModel.ShowLastVisit = req.ShowLastVisit
 	} else {
 		updatedModel.ShowLastVisit = account.ShowLastVisit
 	}
 
-	if req.ShowPhone != nil {
-		updatedModel.ShowPhone = *req.ShowPhone
+	if req.ShowPhone != "" {
+		updatedModel.ShowPhone = req.ShowPhone
 	} else {
 		updatedModel.ShowPhone = account.ShowPhone
 	}
@@ -325,7 +305,11 @@ func (ah *AccountHandler) UpdateUserInfo(c echo.Context) error {
 }
 
 func (ah *AccountHandler) Delete(c echo.Context) error {
-	var req request.TokenAndID
+	var req request.TokenOnly
+	id, err := request.GetUintParam(c, "id")
+	if err != nil {
+		return err
+	}
 	if err := request.BindT(&req, c); err != nil {
 		return err
 	}
@@ -334,14 +318,13 @@ func (ah *AccountHandler) Delete(c echo.Context) error {
 	}
 
 	var claims map[string]interface{}
-	var err error
-	claims, err = ah.jwtConfig.ValidateToken(*req.Token)
+	claims, err = ah.jwtConfig.ValidateToken(req.Token)
 	if err != nil {
 		return echo.NewHTTPError(http.StatusUnauthorized, err.Error())
 	}
 
 	accounts := ah.repo.Get(c.Request().Context(), accountrepo.GetCommand{
-		ID: req.ID,
+		ID: &id,
 	})
 	if len(accounts) > 1 {
 		return echo.ErrInternalServerError
@@ -373,17 +356,17 @@ func (ah *AccountHandler) Search(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
 	}
 
-	claims, err := ah.jwtConfig.ValidateToken(*req.Token)
+	claims, err := ah.jwtConfig.ValidateToken(req.Token)
 	if err != nil {
 		return echo.NewHTTPError(http.StatusUnauthorized, err.Error())
 	}
 
 	accounts := ah.repo.Get(c.Request().Context(), accountrepo.GetCommand{
-		ID:        req.ID,
-		Username:  req.Username,
-		FirstName: req.Firstname,
-		LastName:  req.Lastname,
-		Phone:     req.Phone,
+		ID:        &req.ID,
+		Username:  &req.Username,
+		FirstName: &req.Firstname,
+		LastName:  &req.Lastname,
+		Phone:     &req.Phone,
 	})
 
 	// creating contactDTO of these accounts (to avoid sending all account info)
@@ -403,7 +386,7 @@ func (ah *AccountHandler) Search(c echo.Context) error {
 
 func (ah *AccountHandler) RegisterMethods(g *echo.Group) {
 	g.POST("register", ah.Register)
-	g.POST("login", ah.chooseLogin)
+	g.POST("login", ah.Login)
 	g.GET("users/:id", ah.GetUserInfo)
 	g.PATCH("users/:id", ah.UpdateUserInfo)
 	g.DELETE("users/:id", ah.Delete)

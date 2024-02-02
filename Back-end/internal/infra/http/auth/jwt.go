@@ -31,6 +31,7 @@ func (c *JWTConfig) CreateToken(claims map[string]interface{}) (string, error) {
 	allClaims := jwt.MapClaims{}
 	allClaims["iss"] = c.iss
 	allClaims["aud"] = c.aud
+	allClaims["exp"] = time.Now().Add(c.expirationDuration).Unix()
 	for key, value := range claims {
 		allClaims[key] = value
 	}

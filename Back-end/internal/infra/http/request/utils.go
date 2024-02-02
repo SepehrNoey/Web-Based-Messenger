@@ -2,6 +2,7 @@ package request
 
 import (
 	"fmt"
+	"strconv"
 
 	"github.com/SepehrNoey/Web-Based-Messenger/Back-end/internal/infra/http/auth"
 	"github.com/go-playground/validator/v10"
@@ -13,7 +14,7 @@ type ReqStructWithToken interface {
 	SetToken(token string)
 }
 
-// binds the values in body, query and path param
+// binds the values in body, query
 func Bind(reqSt interface{}, c echo.Context) error {
 	if err := c.Bind(reqSt); err != nil {
 		return echo.ErrBadRequest
@@ -22,24 +23,20 @@ func Bind(reqSt interface{}, c echo.Context) error {
 	return nil
 }
 
-// binds the values in body, query and path param and also the token given
-// in the header of request
+// binds the values in body, query and token in header (but not path parameters)
 func BindT(reqSt ReqStructWithToken, c echo.Context) error {
 	if err := c.Bind(reqSt); err != nil {
 		return echo.ErrBadRequest
 	}
 
 	// bind jwt tokne in header
-	binder := &echo.DefaultBinder{}
-	if err := binder.BindHeaders(c, reqSt); err != nil {
-		return echo.ErrBadRequest
-	} else {
-		token, err := auth.ExtractTokenOfHeader(reqSt.GetToken())
-		if err != nil {
-			return err
-		}
-		reqSt.SetToken(token)
+
+	tokenHeader := c.Request().Header.Get("Authorization")
+	token, err := auth.ExtractTokenOfHeader(tokenHeader)
+	if err != nil {
+		return err
 	}
+	reqSt.SetToken(token)
 
 	return nil
 }
@@ -54,27 +51,28 @@ func Validate(reqSt interface{}) error {
 	return nil
 }
 
-type TokenAndID struct {
-	ID    *uint64 `param:"id,omitempty" validate:"number,required"`
-	Token *string `header:"Authorization,omitempty" validate:"required"`
-}
+func GetUintParam(c echo.Context, name string) (uint64, error) {
+	numStr := c.Param(name)
+	if numStr == "" {
+		return 0, echo.ErrBadRequest
+	}
 
-func (tid *TokenAndID) GetToken() string {
-	return *tid.Token
-}
+	num, err := strconv.ParseUint(numStr, 10, 64)
+	if err != nil {
+		return 0, echo.ErrBadRequest
+	}
 
-func (tid *TokenAndID) SetToken(token string) {
-	*tid.Token = token
+	return num, nil
 }
 
 type TokenOnly struct {
-	Token *string `header:"Authorization,omitempty" validate:"required"`
+	Token string `json:"-" validate:"required"`
 }
 
 func (t *TokenOnly) GetToken() string {
-	return *t.Token
+	return t.Token
 }
 
 func (t *TokenOnly) SetToken(token string) {
-	*t.Token = token
+	t.Token = token
 }

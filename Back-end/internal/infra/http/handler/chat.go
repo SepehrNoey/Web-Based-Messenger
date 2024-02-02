@@ -54,14 +54,14 @@ func (ch *ChatHandler) Create(c echo.Context) error {
 
 	var claims map[string]interface{}
 	var err error
-	claims, err = ch.jwtConfig.ValidateToken(*req.Token)
+	claims, err = ch.jwtConfig.ValidateToken(req.Token)
 	if err != nil {
 		return echo.NewHTTPError(http.StatusUnauthorized, err.Error())
 	}
 
 	userID, _ := claims["id"].(uint64)
 	contactAccs := ch.accRepo.Get(c.Request().Context(), accountrepo.GetCommand{
-		ID: req.ContactID,
+		ID: &req.ContactID,
 	})
 	if len(contactAccs) > 1 {
 		return echo.ErrInternalServerError
@@ -70,7 +70,7 @@ func (ch *ChatHandler) Create(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusNotFound, model.ErrUserNotFound.Error())
 	}
 
-	mems := []uint64{userID, *req.ContactID}
+	mems := []uint64{userID, req.ContactID}
 	chatsWithContact := ch.chatRepo.Get(c.Request().Context(), chatrepo.GetCommand{
 		Members: &mems,
 	})
@@ -83,7 +83,7 @@ func (ch *ChatHandler) Create(c echo.Context) error {
 
 	if err := ch.chatRepo.Create(c.Request().Context(), model.Chat{
 		ID:      uint64(lastRegisteredChatID + 1),
-		Members: []uint64{userID, *req.ContactID},
+		Members: []uint64{userID, req.ContactID},
 	}); err != nil {
 		return echo.ErrInternalServerError
 	}
@@ -104,7 +104,7 @@ func (ch *ChatHandler) Get(c echo.Context) error {
 
 	var claims map[string]interface{}
 	var err error
-	claims, err = ch.jwtConfig.ValidateToken(*req.Token)
+	claims, err = ch.jwtConfig.ValidateToken(req.Token)
 	if err != nil {
 		return echo.NewHTTPError(http.StatusUnauthorized, err.Error())
 	}
@@ -130,14 +130,14 @@ func (ch *ChatHandler) GetByID(c echo.Context) error {
 
 	var claims map[string]interface{}
 	var err error
-	claims, err = ch.jwtConfig.ValidateToken(*req.Token)
+	claims, err = ch.jwtConfig.ValidateToken(req.Token)
 	if err != nil {
 		return echo.NewHTTPError(http.StatusUnauthorized, err.Error())
 	}
 
 	userID, _ := claims["id"].(uint64)
 	chats := ch.chatRepo.Get(c.Request().Context(), chatrepo.GetCommand{
-		ID: req.ID,
+		ID: &req.ID,
 	})
 
 	if len(chats) > 1 {
@@ -152,10 +152,10 @@ func (ch *ChatHandler) GetByID(c echo.Context) error {
 	}
 
 	msgs := ch.msgRepo.Get(c.Request().Context(), messagerepo.GetCommand{
-		ChatID: req.ID,
+		ChatID: &req.ID,
 	})
 	dto := clientdto.ChatWithContentDTO{
-		ID:        req.ID,
+		ID:        &req.ID,
 		Members:   &chat.Members,
 		CreatedAt: &chat.CreatedAt,
 		UpdatedAt: &chat.UpdatedAt,
@@ -178,14 +178,14 @@ func (ch *ChatHandler) Delete(c echo.Context) error {
 
 	var claims map[string]interface{}
 	var err error
-	claims, err = ch.jwtConfig.ValidateToken(*req.Token)
+	claims, err = ch.jwtConfig.ValidateToken(req.Token)
 	if err != nil {
 		return echo.NewHTTPError(http.StatusUnauthorized, err.Error())
 	}
 
 	userID, _ := claims["id"].(uint64)
 	chats := ch.chatRepo.Get(c.Request().Context(), chatrepo.GetCommand{
-		ID: req.ID,
+		ID: &req.ID,
 	})
 
 	if len(chats) > 1 {
@@ -220,14 +220,14 @@ func (ch *ChatHandler) DeleteMsg(c echo.Context) error {
 
 	var claims map[string]interface{}
 	var err error
-	claims, err = ch.jwtConfig.ValidateToken(*req.Token)
+	claims, err = ch.jwtConfig.ValidateToken(req.Token)
 	if err != nil {
 		return echo.NewHTTPError(http.StatusUnauthorized, err.Error())
 	}
 
 	userID, _ := claims["id"].(uint64)
 	chats := ch.chatRepo.Get(c.Request().Context(), chatrepo.GetCommand{
-		ID: req.ChatID,
+		ID: &req.ChatID,
 	})
 
 	if len(chats) > 1 {
@@ -242,8 +242,8 @@ func (ch *ChatHandler) DeleteMsg(c echo.Context) error {
 	}
 
 	msgs := ch.msgRepo.Get(c.Request().Context(), messagerepo.GetCommand{
-		ID:     req.MsgID,
-		ChatID: req.ChatID,
+		ID:     &req.MsgID,
+		ChatID: &req.ChatID,
 	})
 	if len(msgs) > 1 {
 		return echo.ErrInternalServerError
@@ -252,8 +252,8 @@ func (ch *ChatHandler) DeleteMsg(c echo.Context) error {
 	}
 
 	if err := ch.msgRepo.Delete(c.Request().Context(), messagerepo.GetCommand{
-		ID:     req.MsgID,
-		ChatID: req.ChatID,
+		ID:     &req.MsgID,
+		ChatID: &req.ChatID,
 	}); err != nil {
 		return echo.ErrInternalServerError
 	}
@@ -263,9 +263,9 @@ func (ch *ChatHandler) DeleteMsg(c echo.Context) error {
 }
 
 func (ch *ChatHandler) RegisterMethods(g *echo.Group) {
-	g.POST("chats", ch.Create)
-	g.GET("chats", ch.Get)
-	g.GET("chats/:chat_id", ch.GetByID)
-	g.DELETE("chats/:chat_id", ch.Delete)
-	g.DELETE("chats/:chat_id/messages/:message_id", ch.DeleteMsg)
+	g.POST("", ch.Create)
+	g.GET("", ch.Get)
+	g.GET(":chat_id", ch.GetByID)
+	g.DELETE(":chat_id", ch.Delete)
+	g.DELETE(":chat_id/messages/:message_id", ch.DeleteMsg)
 }
