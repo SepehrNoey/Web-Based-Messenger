@@ -10,10 +10,10 @@ const App = () => {
     <Router>
       <Routes>
         <Route path="/api/register" element={<Signup />} />
-        <Route path="/login" element={<LoginForm />} />
+        <Route path="/api/login" element={<LoginForm />} />
         <Route path="/main" element={<MainPage />} />
         <Route path="/profile" element={<ProfilePage />} /> // Define the route for /profile
-        <Route path="/" element={<Navigate replace to="/login" />} />
+        <Route path="/" element={<Navigate replace to="api/login" />} />
       </Routes>
     </Router>
   );
