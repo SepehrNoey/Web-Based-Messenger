@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import 'D:/Projects/FullStackProjects/Web-Based-Messenger/Front-end/ie-frontend-final-project/src/styles/signup.css';
+import './styles/signup.css';
 
 
 const Signup = () => {

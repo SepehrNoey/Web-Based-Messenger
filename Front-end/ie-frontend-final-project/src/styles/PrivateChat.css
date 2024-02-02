@@ -1,0 +1,76 @@
+.private-chat-container {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+  }
+  
+  .contact-info {
+    display: flex;
+    align-items: center;
+    padding: 10px;
+    border-bottom: 1px solid #ccc;
+  }
+  
+  .contact-image {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    margin-right: 10px;
+  }
+  
+  .contact-name {
+    font-weight: bold;
+  }
+  
+  .contact-status {
+    margin-left: auto;
+    font-style: italic;
+  }
+  
+  .message-list {
+    flex-grow: 1;
+    padding: 10px;
+    overflow-y: auto;
+  }
+  
+  .message-item {
+    margin: 5px 0;
+    padding: 10px;
+    border-radius: 20px;
+    max-width: 60%;
+  }
+  
+  .message-item.sent {
+    align-self: flex-end;
+    background-color: #dcf8c6; /* Light green background for sent messages */
+  }
+  
+  .message-item.received {
+    align-self: flex-start;
+    background-color: #fff; /* White background for received messages */
+  }
+  
+  .message-input-area {
+    display: flex;
+    padding: 10px;
+    border-top: 1px solid #ccc;
+  }
+  
+  .message-input {
+    flex-grow: 1;
+    padding: 10px;
+    margin-right: 10px;
+    border: 1px solid #ccc;
+    border-radius: 20px;
+    outline: none;
+  }
+  
+  .send-button {
+    padding: 10px 20px;
+    background-color: #007bff;
+    border: none;
+    border-radius: 20px;
+    color: white;
+    cursor: pointer;
+  }
+  

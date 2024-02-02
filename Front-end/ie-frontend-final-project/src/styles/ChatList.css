@@ -1,0 +1,90 @@
+.chat-list-container {
+    width: 30%;
+    max-width: 350px;
+    background: #f7f7f7;
+    border-right: 1px solid #ddd;
+    display: flex;
+    flex-direction: column;
+    height: 100vh; /* Full height */
+    overflow-y: auto; /* Make the chat list scrollable */
+  }
+  
+  .search-container {
+    padding: 10px;
+  }
+  
+  .search-bar {
+    width: 100%;
+    padding: 10px;
+    border-radius: 20px;
+    border: 1px solid #ccc;
+    outline: none;
+  }
+  
+  .chat-items {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+  
+  .chat-item {
+    display: flex;
+    align-items: center;
+    padding: 10px;
+    border-bottom: 1px solid #eee;
+    transition: background-color 0.2s ease;
+  }
+  
+  .chat-item:hover {
+    background-color: #eaeaea;
+  }
+  
+  .chat-image {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    object-fit: cover;
+    margin-right: 10px;
+  }
+  
+  .chat-info {
+    flex-grow: 1;
+  }
+  
+  .chat-name {
+    font-weight: bold;
+  }
+  
+  .chat-status {
+    font-size: 0.8em;
+    color: #5cb85c; /* Green for online status */
+  }
+  
+  .chat-last-message {
+    font-size: 0.9em;
+    color: #999;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  
+  .chat-meta {
+    text-align: right;
+    min-width: 50px;
+  }
+  
+  .chat-time {
+    font-size: 0.7em;
+    color: #999;
+  }
+  
+  .chat-unread-count {
+    background-color: #007bff;
+    color: white;
+    border-radius: 50%;
+    padding: 2px 6px;
+    font-size: 0.8em;
+    margin-top: 4px;
+    display: inline-block;
+  }
+  
