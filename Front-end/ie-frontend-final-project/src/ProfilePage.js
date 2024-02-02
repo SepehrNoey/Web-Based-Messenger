@@ -10,7 +10,7 @@ const ProfilePage = () => {
     phone: '',
     username: '',
     password: '',
-    image: null, // For image, we'll store the file object
+    image: null,
     bio: '',
   });
   const [error, setError] = useState('');
@@ -26,20 +26,17 @@ const ProfilePage = () => {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    // Handle form submission, including file upload
     console.log(userInfo);
-    // After successful update, you might want to navigate the user
-    // navigate('/main');
   };
 
   const handleDeleteAccount = async () => {
     const confirmDeletion = window.confirm('Are you sure you want to delete your account? This action cannot be undone.');
     if (confirmDeletion) {
       try {
-        const response = await fetch('/api/user/delete', { // Adjust this endpoint to your API's endpoint for deleting accounts
+        const response = await fetch('/api/user/delete', {
           method: 'DELETE',
           headers: {
-            'Authorization': `Bearer ${localStorage.getItem('jwtToken')}`, // Assuming you're using JWT tokens for auth
+            'Authorization': `Bearer ${localStorage.getItem('jwtToken')}`,
             'Content-Type': 'application/json',
           },
         });
@@ -48,7 +45,6 @@ const ProfilePage = () => {
           throw new Error('Failed to delete account');
         }
   
-        // Clear user data and navigate to login page after successful deletion
         localStorage.removeItem('jwtToken');
         navigate('/login');
       } catch (error) {
@@ -59,15 +55,14 @@ const ProfilePage = () => {
   };
 
   const handleLogout = () => {
-    localStorage.removeItem('jwtToken'); // Remove the token or any other session data from storage
-    navigate('/login'); // Redirect to login page
+    localStorage.removeItem('jwtToken');
+    navigate('/login');
   };
   
 
   return (
     <div className="profile-page">
       <form onSubmit={handleSubmit} className="profile-form">
-        {/* Iterate over userInfo keys to generate form fields */}
         {Object.keys(userInfo).map((key) => (
           key !== 'image' ? (
             <div className="form-group" key={key}>

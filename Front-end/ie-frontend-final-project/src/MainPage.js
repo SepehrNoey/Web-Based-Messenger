@@ -2,14 +2,14 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import ChatList from './ChatList'; 
 import PrivateChat from './PrivateChat';
-import './styles/MainPage.css'; // Ensure you have the corresponding CSS file
+import './styles/MainPage.css';
 
 const MainPage = () => {
   const navigate = useNavigate();
   const selectedContact = {
-    image: 'path_to_image', // Replace with actual image path
+    image: 'path_to_image',
     name: 'Contact Name',
-    status: 'Online', // Replace with actual status
+    status: 'Online',
   };
 
   return (
@@ -19,7 +19,6 @@ const MainPage = () => {
           <span className="material-icons">account_circle</span>
         </div>
       </header>
-      {/* Chat list and other main page content go here */}
       <ChatList />
       <div className="main-content">
         <PrivateChat contactInfo={selectedContact} />

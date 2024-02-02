@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import './styles/PrivateChat.css'; // Make sure to create and import your CSS file
+import './styles/PrivateChat.css';
 
 const PrivateChat = ({ contactInfo }) => {
   const [newMessage, setNewMessage] = useState('');
@@ -8,10 +8,8 @@ const PrivateChat = ({ contactInfo }) => {
   ]);
 
   const handleSendMessage = () => {
-    // Logic to send a new message
-    // This would involve updating the `messages` state and sending the message to the backend
     console.log(newMessage);
-    setNewMessage(''); // Clear input after sending
+    setNewMessage('');
   };
 
   return (

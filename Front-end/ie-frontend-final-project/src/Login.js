@@ -54,7 +54,7 @@ const Login = () => {
         <button type="submit" disabled={isLoading}>{isLoading ? 'Logging in...' : 'Login'}</button>
         {error && <p className="error-message">{error}</p>}
 
-        <p>Don't have an account? <Link to="/signup">Sign up</Link></p>
+        <p>Don't have an account? <Link to="/api/register">Sign up</Link></p>
       </form>
     </div>
   );

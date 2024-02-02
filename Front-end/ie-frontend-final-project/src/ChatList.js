@@ -1,21 +1,21 @@
 import React, { useState, useEffect } from 'react';
-import './styles/ChatList.css'; // Make sure to create and import your CSS file
+import './styles/ChatList.css';
 
 const ChatList = () => {
-  // Dummy data for chat items
+  
   const [chats, setChats] = useState([
-    // Populate with data fetched from your backend
+    
   ]);
   const [searchTerm, setSearchTerm] = useState('');
 
-  // Handle search bar changes
+ 
   const handleSearchChange = (event) => {
     setSearchTerm(event.target.value);
-    // You might want to implement debouncing here
+    
   };
 
   useEffect(() => {
-    // TODO: Fetch the chat list from the backend and update the state
+    
   }, []);
 
   return (
@@ -32,9 +32,7 @@ const ChatList = () => {
       <ul className="chat-items">
         {chats
           .filter((chat) => {
-            // Filter chats based on search term
-            // Check if chat name or last message includes the search term
-            // This is a simple client-side filter. For large datasets, consider server-side searching
+            
             return (
               chat.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
               chat.lastMessage.toLowerCase().includes(searchTerm.toLowerCase())

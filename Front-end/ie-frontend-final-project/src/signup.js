@@ -23,7 +23,6 @@ const Signup = () => {
         } else {
             setFormData({ ...formData, [name]: value });
         }
-        // Clear errors for a specific field when user starts correcting it
         if (errors[name]) {
             setErrors({ ...errors, [name]: null });
         }
@@ -31,7 +30,7 @@ const Signup = () => {
 
     const validateForm = () => {
         const newErrors = {};
-        // Add validation checks as needed for each field
+        
         if (!formData.firstname.trim()) newErrors.firstname = 'First name is required';
         if (!formData.lastname.trim()) newErrors.lastname = 'Last name is required';
         if (!formData.phone.trim()) newErrors.phone = 'Phone number is required';
@@ -39,13 +38,12 @@ const Signup = () => {
         if (!formData.password) newErrors.password = 'Password is required';
 
         setErrors(newErrors);
-        return Object.keys(newErrors).length === 0; // Returns true if no errors
+        return Object.keys(newErrors).length === 0; 
     };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
 
-        // Client-side validation
         if (!validateForm()) return;
 
         const formDataToSend = new FormData();
@@ -66,7 +64,6 @@ const Signup = () => {
                     }
                     return;
                 }
-                // On successful signup
                 if (body.token) {
                     localStorage.setItem('jwtToken', body.token);
                     navigate('/api/login');
