@@ -1,0 +1,78 @@
+/* Container for the entire login form */
+.login-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh; /* Use the full height of the viewport */
+  background-color: #f4f7f6; /* Light background color */
+}
+
+/* Styles for the form */
+form {
+  background: #ffffff;
+  padding: 40px;
+  border-radius: 8px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  width: 300px; /* Fixed width for the form */
+}
+
+/* Styles for each form field */
+form div {
+  margin-bottom: 20px; /* Space between form fields */
+}
+
+/* Styles for the form labels */
+label {
+  display: block;
+  margin-bottom: 5px;
+  color: #333333;
+  font-weight: 500;
+}
+
+/* Styles for the form input fields */
+input[type="text"],
+input[type="password"] {
+  width: 100%;
+  padding: 10px;
+  border: 1px solid #cccccc;
+  border-radius: 4px;
+  box-sizing: border-box; /* Include padding and border in the element's total width and height */
+}
+
+/* Styles for the form submit button */
+button[type="submit"] {
+  width: 100%;
+  padding: 10px;
+  background-color: #4CAF50; /* Green background */
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 16px;
+}
+
+/* Change button color on hover */
+button[type="submit"]:hover {
+  background-color: #45a049;
+}
+
+/* Styles for the error message */
+.error-message {
+  color: #ff3860; /* Red color for errors */
+  text-align: center;
+  margin-bottom: 20px;
+}
+
+/* Styles for the signup link */
+p {
+  text-align: center;
+}
+
+a {
+  color: #4CAF50; /* Green color for the link */
+  text-decoration: none; /* Remove underline */
+}
+
+a:hover {
+  text-decoration: underline; /* Add underline on hover */
+}

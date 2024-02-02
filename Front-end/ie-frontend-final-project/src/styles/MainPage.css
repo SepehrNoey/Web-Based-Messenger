@@ -1,0 +1,20 @@
+.main-page {
+  display: flex;
+  align-items: stretch; /* Ensures children fill the height */
+  height: 100vh;
+  background: #EDEDED; /* Light grey background like Telegram */
+}
+
+.main-page .main-header .profile-icon {
+    cursor: pointer;
+  }
+  
+  .main-page .main-header .material-icons {
+    font-size: 36px;
+    color: #666;
+  }
+  
+  .main-content {
+    display: flex;
+    height: 100%;
+  }
